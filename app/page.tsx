@@ -104,7 +104,7 @@ const HomePage: React.FC = () => {
             width={500}
             height={300}
           />
-          <p className="text-center text-[#222] max-w-2xl mx-auto mb-8">
+          <p className="text-center text-[#222] max-w-2xl mx-auto mb-8"  >
             استمتع بأشهى المأكولات المحضرة بعناية من أفضل الطهاة لدينا. تذوق
             النكهات الأصيلة والمكونات الطازجة.
           </p>
