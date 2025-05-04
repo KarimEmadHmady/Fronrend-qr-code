@@ -5,22 +5,42 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from 'next/image';
+
+interface Meal {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  reviews: { _id: string; name: string; rating: number; comment: string }[];
+}
+
+interface Review {
+  rating: number;
+  comment: string;
+}
+
+interface User {
+  id: string;
+  username: string;
+  email: string;
+}
+
 const MealDetailsPage = () => {
   const params = useParams();
-const mealId = params?.mealId as string;
+  const mealId = params?.mealId as string;
 
-  const { isAuthenticated, user } = useAuth();
-  const [meal, setMeal] = useState(null);
-  const [review, setReview] = useState({ rating: 0, comment: "" });
+  const { isAuthenticated, user } = useAuth() as { isAuthenticated: boolean; user: User | null };
+  const [meal, setMeal] = useState<Meal | null>(null);
+  const [review, setReview] = useState<Review>({ rating: 0, comment: "" });
   const [hoverRating, setHoverRating] = useState(0);
   const [loading, setLoading] = useState(true);
 
-
-  const fetchMeal = async () => {
+  const fetchMeal = async (): Promise<void> => {
     try {
       setLoading(true);
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/meals/${mealId}`);
-      const data = await res.json();
+      const data: Meal = await res.json();
       setMeal(data);
     } catch (err) {
       console.error("Error fetching meal:", err);
@@ -33,7 +53,7 @@ const mealId = params?.mealId as string;
     fetchMeal();
   }, []); // Removed fetchMeal from the dependency array
 
-  const handleReviewSubmit = async (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     if (!isAuthenticated) {
       alert("يجب تسجيل الدخول لإضافة تقييم.");
@@ -47,6 +67,11 @@ const mealId = params?.mealId as string;
 
     try {
       const token = localStorage.getItem("token");
+      if (!token || !user?.id) {
+        alert("Authentication error. Please log in again.");
+        return;
+      }
+
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/meals/${mealId}/reviews`,
         {
@@ -74,17 +99,17 @@ const mealId = params?.mealId as string;
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#eee]">
-      <div className="text-center">
-        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <Image
-          src="/logo.png"
-          alt="شعار التطبيق"
-          width={150}
-          height={150}
-          className="object-center block mx-auto mb-6"
-        />
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <Image
+            src="/logo.png"
+            alt="شعار التطبيق"
+            width={150}
+            height={150}
+            className="object-center block mx-auto mb-6"
+          />
+        </div>
       </div>
-    </div>
     );
   }
 
@@ -99,7 +124,7 @@ const mealId = params?.mealId as string;
       <AnimatedBackground />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         <div>
-          <Image 
+          <Image
             src={meal.image}
             alt={meal.name || "meal image"}
             width={600}

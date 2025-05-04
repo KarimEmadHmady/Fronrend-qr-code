@@ -6,24 +6,37 @@ import axios from "axios";
 import Link from "next/link";
 import { Star, ChevronRight, Utensils, Clock, Search } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
-import Image from 'next/image';
+import Image from "next/image";
 
-const HomePage = () => {
+interface Meal {
+  _id: string;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  image: string;
+  preparationTime?: number;
+  isNew?: boolean;
+  reviews?: { rating: number }[];
+}
+
+const HomePage: React.FC = () => {
   const router = useRouter();
-  const [meals, setMeals] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [meals, setMeals] = useState<Meal[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [activeCategory, setActiveCategory] = useState<string>("All");
 
   useEffect(() => {
     const fetchMeals = async () => {
       try {
-        const response = await axios.get(
+        const response = await axios.get<Meal[]>(
           `${process.env.NEXT_PUBLIC_API_URL}/meals`
         );
         setMeals(response.data);
         setLoading(false);
-      } catch {
+      } catch (error) {
+        console.error("Error fetching meals:", error);
         setLoading(false);
       }
     };
@@ -42,7 +55,7 @@ const HomePage = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const renderStars = (rating) => {
+  const renderStars = (rating: number): React.ReactNode => {
     return (
       <div className="flex">
         {[1, 2, 3, 4, 5].map((star) => (
@@ -65,12 +78,12 @@ const HomePage = () => {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">
-            <Image 
+            <Image
               src={"/logo.png"}
               alt="Logo"
               className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
-              width={500} 
-              height={300} 
+              width={500}
+              height={300}
             />
           </p>
         </div>
@@ -79,17 +92,17 @@ const HomePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#eee]  rtl">
+    <div className="min-h-screen bg-[#eee] rtl">
       <AnimatedBackground />
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-primary/90 to-primary text-[#222] py-12 px-4 bg-[#eee]">
         <div className="container mx-auto max-w-6xl">
-          <Image 
+          <Image
             src={"/logo.png"}
             alt="Logo"
             className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
-            width={500} 
-            height={300} 
+            width={500}
+            height={300}
           />
           <p className="text-center text-[#222] max-w-2xl mx-auto mb-8">
             استمتع بأشهى المأكولات المحضرة بعناية من أفضل الطهاة لدينا. تذوق
@@ -114,9 +127,8 @@ const HomePage = () => {
 
       <div className="container mx-auto max-w-6xl px-4 py-8">
         {/* Categories */}
-        <div className="mb-8  pb-2">
-          {/* overflow-x-auto */}
-          <div className="flex flex-wrap gap-[4px] ">
+        <div className="mb-8 pb-2">
+          <div className="flex flex-wrap gap-[4px]">
             {categories.map((category) => (
               <button
                 key={category}
@@ -124,7 +136,7 @@ const HomePage = () => {
                 className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
                   activeCategory === category
                     ? "bg-white text-[#222] hover:bg-gray-200"
-                    : "bg-gray-100 text-gray-700 "
+                    : "bg-gray-100 text-gray-700"
                 }`}
               >
                 {category}
@@ -156,12 +168,12 @@ const HomePage = () => {
                 <div className="flex flex-col md:flex-row h-auto md:h-56">
                   {/* Meal Image */}
                   <div className="w-full md:w-1/3 relative overflow-hidden h-48 md:h-full">
-                    <Image 
+                    <Image
                       src={meal.image || "/placeholder.svg"}
                       alt={meal.name}
                       className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                      width={500} 
-                      height={300} 
+                      width={500}
+                      height={300}
                     />
                     {meal.isNew && (
                       <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
@@ -209,7 +221,12 @@ const HomePage = () => {
                         <div className="flex items-center justify-end gap-1 mb-1">
                           {meal.reviews && meal.reviews.length > 0 ? (
                             <>
-                              {renderStars(5)}
+                              {renderStars(
+                                meal.reviews.reduce(
+                                  (sum, review) => sum + review.rating,
+                                  0
+                                ) / meal.reviews.length
+                              )}
                               <span className="text-xs text-gray-500 mr-1">
                                 ({meal.reviews.length})
                               </span>

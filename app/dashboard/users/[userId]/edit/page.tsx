@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from 'next/image';
+
 interface UserData {
   username: string;
   email: string;
@@ -14,7 +15,8 @@ interface UserData {
 export default function EditUserPage() {
   const { token } = useAuth();
   const router = useRouter();
-  const { userId } = useParams();
+  const params = useParams();
+  const userId = params.userId!;
 
   const [userData, setUserData] = useState<UserData>({
     username: "",
@@ -156,3 +158,4 @@ export default function EditUserPage() {
     </div>
   );
 }
+
