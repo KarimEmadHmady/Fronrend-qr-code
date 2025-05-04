@@ -4,9 +4,11 @@ import axios from "axios";
 import { useRouter, useParams } from "next/navigation";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from 'next/image';
+import { Meal, Review } from "@/types"; // Ensure these types are defined in "@/types"
+
 const EditMealPage = () => {
-  const { id } = useParams();
-  const [meal, setMeal] = useState({
+  const { id } = useParams<{ id: string }>() || { id: "" }; // Handle potential null value
+  const [meal, setMeal] = useState<Meal>({
     name: "",
     description: "",
     price: "",
@@ -14,13 +16,13 @@ const EditMealPage = () => {
     image: null,
     reviews: [],
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
 
   useEffect(() => {
     const fetchMeal = async () => {
       try {
-        const response = await axios.get(
+        const response = await axios.get<Meal>(
           `${process.env.NEXT_PUBLIC_API_URL}/meals/${id}`
         );
         setMeal(response.data);
@@ -40,7 +42,7 @@ const EditMealPage = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setMeal({ ...meal, image: URL.createObjectURL(file) });
     }
@@ -58,6 +60,9 @@ const EditMealPage = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found");
+      }
       await axios.put(
         `${process.env.NEXT_PUBLIC_API_URL}/meals/${id}`,
         formData,
@@ -81,15 +86,14 @@ const EditMealPage = () => {
 
     if (updatedComment && updatedRating) {
       const rating = parseInt(updatedRating, 10);
-      if (rating < 1 || rating > 5) {
+      if (isNaN(rating) || rating < 1 || rating > 5) {
         alert("Please provide a rating between 1 and 5.");
         return;
       }
       try {
         const token = localStorage.getItem("token");
         if (!token) {
-          console.error("No token found");
-          return;
+          throw new Error("No token found");
         }
         await axios.put(
           `${process.env.NEXT_PUBLIC_API_URL}/meals/${id}/reviews/${reviewId}`,
@@ -119,8 +123,7 @@ const EditMealPage = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        console.error("No token found");
-        return;
+        throw new Error("No token found");
       }
       await axios.delete(
         `${process.env.NEXT_PUBLIC_API_URL}/meals/${id}/reviews/${reviewId}`,
@@ -228,7 +231,7 @@ const EditMealPage = () => {
         <h3 className="text-xl font-semibold mb-4">Reviews</h3>
         {meal.reviews.length > 0 ? (
           <div className="space-y-4">
-            {meal.reviews.map((review) => (
+            {meal.reviews.map((review: Review) => (
               <div
                 key={review._id}
                 className="p-6 border rounded-lg shadow-md bg-white flex flex-col space-y-2"

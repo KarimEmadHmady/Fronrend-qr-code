@@ -16,7 +16,6 @@ export default function EditUserPage() {
   const { token } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const userId = params.userId!;
 
   const [userData, setUserData] = useState<UserData>({
     username: "",
@@ -26,7 +25,11 @@ export default function EditUserPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
 
+  const userId = params?.userId;
+
   useEffect(() => {
+    if (!userId) return;
+
     const fetchUserData = async () => {
       try {
         const res = await fetch(
@@ -46,45 +49,12 @@ export default function EditUserPage() {
       }
     };
 
-    if (userId) {
-      fetchUserData();
-    }
+    fetchUserData();
   }, [userId, token]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    setUserData({
-      ...userData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/${userId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(userData),
-        }
-      );
-
-      if (res.ok) {
-        alert("User updated successfully!");
-        router.push("/dashboard/users");
-      } else {
-        setError("Failed to update user");
-      }
-    } catch {
-      setError("Error updating user");
-    }
-  };
+  if (!params) {
+    return <div className="text-center py-10 text-red-500">Invalid parameters</div>;
+  }
 
   if (loading) {
     return (
@@ -157,5 +127,40 @@ export default function EditUserPage() {
       </form>
     </div>
   );
+
+  function handleChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) {
+    setUserData({
+      ...userData,
+      [e.target.name]: e.target.value,
+    });
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/users/${userId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(userData),
+        }
+      );
+
+      if (res.ok) {
+        alert("User updated successfully!");
+        router.push("/dashboard/users");
+      } else {
+        setError("Failed to update user");
+      }
+    } catch {
+      setError("Error updating user");
+    }
+  }
 }
 

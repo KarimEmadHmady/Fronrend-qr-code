@@ -5,7 +5,13 @@ import { useRouter } from "next/navigation";
 import AnimatedBackground from "@/components/AnimatedBackground";
 
 const AddMealPage = () => {
-  const [meal, setMeal] = useState({
+  const [meal, setMeal] = useState<{
+    name: string;
+    description: string;
+    price: string;
+    image: File | null;
+    category: string;
+  }>({
     name: "",
     description: "",
     price: "",
@@ -23,7 +29,12 @@ const AddMealPage = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setMeal({ ...meal, image: e.target.files ? e.target.files[0] : null });
+    const files = e.target.files;
+    if (files && files.length > 0) {
+        setMeal({ ...meal, image: files[0] });
+    } else {
+        setMeal({ ...meal, image: null });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
