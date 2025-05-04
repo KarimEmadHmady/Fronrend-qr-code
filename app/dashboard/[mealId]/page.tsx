@@ -72,7 +72,7 @@
 //         <div className="text-center">
 //           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
 //           <p className="text-gray-600 font-medium">
-//             <img
+//             <Image 
 //               src={"/logo.png"}
 //               className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
 //             />{" "}
@@ -87,7 +87,7 @@
 //       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
 //         {/* Meal Details */}
 //         <div>
-//           <img
+//           <Image 
 //             src={meal.image}
 //             alt={meal.name || "meal image"}
 //             className="w-full h-auto object-cover rounded-xl shadow-md"
@@ -233,14 +233,17 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import AnimatedBackground from "@/components/AnimatedBackground";
-
+import Image from 'next/image';
 const MealDetailsPage = () => {
-  const { mealId } = useParams();
+  const params = useParams();
+const mealId = params?.mealId as string;
+
   const { isAuthenticated, user } = useAuth();
   const [meal, setMeal] = useState(null);
   const [review, setReview] = useState({ rating: 0, comment: "" });
   const [hoverRating, setHoverRating] = useState(0);
   const [loading, setLoading] = useState(true);
+
 
   const fetchMeal = async () => {
     try {
@@ -300,11 +303,17 @@ const MealDetailsPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#eee]">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <img src="/logo.png" className="h-[150px] w-[150px] object-center block mx-auto mb-6" />
-        </div>
+      <div className="text-center">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <Image
+          src="/logo.png"
+          alt="شعار التطبيق"
+          width={150}
+          height={150}
+          className="object-center block mx-auto mb-6"
+        />
       </div>
+    </div>
     );
   }
 
@@ -319,9 +328,11 @@ const MealDetailsPage = () => {
       <AnimatedBackground />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         <div>
-          <img
+          <Image 
             src={meal.image}
             alt={meal.name || "meal image"}
+            width={600}
+            height={400}
             className="w-full h-auto object-cover rounded-xl shadow-md"
           />
           <h1 className="text-3xl font-bold mt-4 text-gray-800">{meal.name}</h1>

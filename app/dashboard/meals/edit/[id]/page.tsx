@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter, useParams } from "next/navigation";
 import AnimatedBackground from "@/components/AnimatedBackground";
-
+import Image from 'next/image';
 const EditMealPage = () => {
   const { id } = useParams();
   const [meal, setMeal] = useState({
@@ -152,10 +152,12 @@ const EditMealPage = () => {
 
         {meal.image && (
           <div className="mb-4">
-            <img
+            <Image 
               src={meal.image}
               alt="Meal Image"
               className="w-full h-auto rounded-lg mb-4"
+              width={600}
+              height={400}
             />
           </div>
         )}

@@ -78,7 +78,7 @@
 //           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
 //           <p className="text-gray-600 font-medium">
 //             {" "}
-//             <img
+//             <Image 
 //               src={"/logo.png"}
 //               className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
 //             />{" "}
@@ -138,7 +138,7 @@
 //             key={meal._id}
 //             className="bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300"
 //           >
-//             <img
+//             <Image 
 //               src={meal.image || "/placeholder.svg"}
 //               alt={meal.name}
 //               className="w-full h-32 object-cover"
@@ -215,7 +215,7 @@ import axios from "axios";
 import Link from "next/link";
 import { Star } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
-
+import Image from 'next/image';
 interface Review {
   rating: number;
   comment: string;
@@ -304,10 +304,12 @@ const MealsPage = () => {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">
-            <img
+            <Image 
               src={"/logo.png"}
               className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
               alt="Logo"
+              width={600}
+              height={400}
             />
           </p>
         </div>
@@ -365,10 +367,12 @@ const MealsPage = () => {
             key={meal._id}
             className="bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300"
           >
-            <img
+            <Image 
               src={meal.image || "/placeholder.svg"}
               alt={meal.name}
               className="w-full h-32 object-cover"
+              width={600}
+              height={400}
             />
             <div className="p-4">
               <h2 className="text-xl font-semibold text-gray-800">

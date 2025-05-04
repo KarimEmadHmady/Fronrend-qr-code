@@ -6,6 +6,7 @@ import axios from "axios";
 import Link from "next/link";
 import { Star, ChevronRight, Utensils, Clock, Search } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import Image from 'next/image';
 
 const HomePage = () => {
   const router = useRouter();
@@ -66,9 +67,11 @@ const HomePage = () => {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">
-            <img
+            <Image 
               src={"/logo.png"}
               className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
+              width={500} 
+              height={300} 
             />
           </p>
         </div>
@@ -118,9 +121,11 @@ const HomePage = () => {
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-primary/90 to-primary text-[#222] py-12 px-4 bg-[#eee]">
         <div className="container mx-auto max-w-6xl">
-          <img
+          <Image 
             src={"/logo.png"}
             className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
+            width={500} 
+            height={300} 
           />
           <p className="text-center text-[#222] max-w-2xl mx-auto mb-8">
             استمتع بأشهى المأكولات المحضرة بعناية من أفضل الطهاة لدينا. تذوق
@@ -187,10 +192,12 @@ const HomePage = () => {
                 <div className="flex flex-col md:flex-row h-auto md:h-56">
                   {/* Meal Image */}
                   <div className="w-full md:w-1/3 relative overflow-hidden h-48 md:h-full">
-                    <img
+                    <Image 
                       src={meal.image || "/placeholder.svg"}
                       alt={meal.name}
                       className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                      width={500} 
+                      height={300} 
                     />
                     {meal.isNew && (
                       <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">

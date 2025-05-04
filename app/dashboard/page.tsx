@@ -66,7 +66,7 @@
 //           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
 //           <p className="text-gray-600 font-medium">
 //             {" "}
-//             <img
+//             <Image 
 //               src={"/logo.png"}
 //               className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
 //             />{" "}
@@ -83,7 +83,7 @@
 //           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
 //           <p className="text-gray-600 font-medium">
 //             {" "}
-//             <img
+//             <Image 
 //               src={"/logo.png"}
 //               className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
 //             />{" "}
@@ -199,7 +199,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import AnimatedBackground from "@/components/AnimatedBackground";
-
+import Image from 'next/image';
 // تعريف واجهة User
 interface User {
   _id: string;
@@ -269,9 +269,11 @@ export default function AdminDashboard() {
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">
             {" "}
-            <img
+            <Image 
               src={"/logo.png"}
               className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
+              width={500} 
+              height={300} 
             />{" "}
           </p>
         </div>
@@ -286,9 +288,11 @@ export default function AdminDashboard() {
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">
             {" "}
-            <img
+            <Image 
               src={"/logo.png"}
               className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
+              width={500} 
+              height={300} 
             />{" "}
           </p>
         </div>

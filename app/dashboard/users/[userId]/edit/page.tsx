@@ -78,7 +78,7 @@
 //     return (
 //       <div className="min-h-screen flex items-center justify-center bg-[#eee] relative">
 //         <div className="text-center z-10">
-//           <img
+//           <Image 
 //             src="/logo.png"
 //             alt="Logo"
 //             className="h-[150px] w-[150px] object-contain mx-auto mb-6 animate-bounce"
@@ -160,7 +160,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import AnimatedBackground from "@/components/AnimatedBackground";
-
+import Image from 'next/image';
 interface UserData {
   username: string;
   email: string;
@@ -244,10 +244,12 @@ export default function EditUserPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#eee] relative">
         <div className="text-center z-10">
-          <img
+          <Image 
             src="/logo.png"
             alt="Logo"
             className="h-[150px] w-[150px] object-contain mx-auto mb-6 animate-bounce"
+            width={500} 
+            height={300} 
           />
           <div className="w-16 h-16 border-4 border-gray-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
