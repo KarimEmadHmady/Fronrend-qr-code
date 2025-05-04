@@ -5,6 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from 'next/image';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface UserData {
   username: string;
@@ -153,8 +155,8 @@ export default function EditUserPage() {
       );
 
       if (res.ok) {
-        alert("User updated successfully!");
-        router.push("/dashboard/users");
+        toast.success("User updated successfully!");
+        router.push("/dashboard");
       } else {
         setError("Failed to update user");
       }

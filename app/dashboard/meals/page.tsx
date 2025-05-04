@@ -88,7 +88,7 @@ const MealsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#eee]">
+      <div className="min-h-screen flex items-center justify-center bg-[#eee] " >
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">
@@ -114,7 +114,7 @@ const MealsPage = () => {
   );
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4" >
       <AnimatedBackground />
       <h1 className="text-4xl font-bold text-center mb-8">Meals Dashboard</h1>
 

@@ -3,6 +3,8 @@ import { useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const AddMealPage = () => {
   const [meal, setMeal] = useState<{
@@ -50,7 +52,7 @@ const AddMealPage = () => {
     setLoading(true);
     const token = localStorage.getItem("token");
     if (!token) {
-      alert("You need to be logged in to add a meal!");
+      toast.error("You need to be logged in to add a meal!");
       setLoading(false);
       return;
     }

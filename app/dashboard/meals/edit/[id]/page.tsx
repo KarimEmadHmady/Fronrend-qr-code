@@ -5,6 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from 'next/image';
 import { Meal, Review } from "@/types"; // Ensure these types are defined in "@/types"
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const EditMealPage = () => {
   const { id } = useParams<{ id: string }>() || { id: "" }; // Handle potential null value
@@ -87,7 +89,7 @@ const EditMealPage = () => {
     if (updatedComment && updatedRating) {
       const rating = parseInt(updatedRating, 10);
       if (isNaN(rating) || rating < 1 || rating > 5) {
-        alert("Please provide a rating between 1 and 5.");
+        toast.error("Please provide a rating between 1 and 5.");
         return;
       }
       try {
