@@ -33,7 +33,7 @@ const mealId = params?.mealId as string;
     fetchMeal();
   }, []); // Removed fetchMeal from the dependency array
 
-  const handleReviewSubmit = async (e) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
       alert("يجب تسجيل الدخول لإضافة تقييم.");
