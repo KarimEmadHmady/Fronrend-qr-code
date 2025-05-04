@@ -12,7 +12,6 @@ const HomePage = () => {
   const router = useRouter();
   const [meals, setMeals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
 
@@ -24,8 +23,7 @@ const HomePage = () => {
         );
         setMeals(response.data);
         setLoading(false);
-      } catch (error) {
-        setError("Failed to load meals. Please try again later.");
+      } catch {
         setLoading(false);
       }
     };
@@ -69,6 +67,7 @@ const HomePage = () => {
           <p className="text-gray-600 font-medium">
             <Image 
               src={"/logo.png"}
+              alt="Logo"
               className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
               width={500} 
               height={300} 
@@ -78,42 +77,6 @@ const HomePage = () => {
       </div>
     );
   }
-  
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-8 w-8 text-red-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">
-            Something went wrong
-          </h3>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-  
 
   return (
     <div className="min-h-screen bg-[#eee]  rtl">
@@ -123,6 +86,7 @@ const HomePage = () => {
         <div className="container mx-auto max-w-6xl">
           <Image 
             src={"/logo.png"}
+            alt="Logo"
             className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
             width={500} 
             height={300} 
