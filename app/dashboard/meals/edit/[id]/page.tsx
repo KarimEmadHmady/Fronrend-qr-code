@@ -91,7 +91,7 @@ const EditMealPage = () => {
           console.error("No token found");
           return;
         }
-        const response = await axios.put(
+        await axios.put(
           `${process.env.NEXT_PUBLIC_API_URL}/meals/${id}/reviews/${reviewId}`,
           { comment: updatedComment, rating },
           {

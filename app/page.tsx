@@ -66,17 +66,16 @@ const HomePage = () => {
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600 font-medium">
-            {" "}
             <img
               src={"/logo.png"}
               className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
-            />{" "}
+            />
           </p>
         </div>
       </div>
     );
   }
-
+  
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -111,6 +110,7 @@ const HomePage = () => {
       </div>
     );
   }
+  
 
   return (
     <div className="min-h-screen bg-[#eee]  rtl">

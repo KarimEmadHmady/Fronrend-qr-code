@@ -49,9 +49,14 @@ export default function RegisterPage() {
       } else {
         throw new Error("Failed to retrieve token or user data");
       }
-    } catch (error: any) {
-      setError(error.message || "Something went wrong");
-    } finally {
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message || "Something went wrong");
+      } else {
+        setError("Something went wrong");
+      }
+    }
+     finally {
       setLoading(false);
     }
   };
