@@ -343,7 +343,7 @@ const HomePage: React.FC = () => {
       {/* Meal Details Modal */}
       {selectedMeal && (
         <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white w-[80%] max-h-[80vh]  overflow-y-auto rounded-[15px] shadow-xl relative scrollbar-hide ">
+          <div className="bg-white w-[90%] max-h-[80vh]  overflow-y-auto rounded-[8px] shadow-xl relative scrollbar-hide ">
             <button
               onClick={() => setSelectedMeal(null)}
               className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full cursor-pointer"
@@ -358,7 +358,7 @@ const HomePage: React.FC = () => {
                     alt={selectedMeal.name}
                     width={400}
                     height={400}
-                    className="rounded-lg object-cover w-full h-[300px]"
+                    className="rounded-lg object-cover w-full h-[181px]"
                   />
                 </div>
                 <div className="md:w-2/3">
