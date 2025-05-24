@@ -1,10 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Link from "next/link";
-import { Star, ChevronRight, Utensils, Clock, Search } from "lucide-react";
+import { Star, Utensils, Clock, Search, Menu, X } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from "next/image";
 
@@ -21,11 +20,20 @@ interface Meal {
 }
 
 const HomePage: React.FC = () => {
-  const router = useRouter();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Add custom styles for hiding scrollbar
+  const scrollableStyle = {
+    msOverflowStyle: 'none',  /* IE and Edge */
+    scrollbarWidth: 'none',   /* Firefox */
+    '&::-webkit-scrollbar': { 
+      display: 'none'         /* Chrome, Safari and Opera */
+    }
+  } as React.CSSProperties;
 
   useEffect(() => {
     const fetchMeals = async () => {
@@ -104,7 +112,7 @@ const HomePage: React.FC = () => {
             width={500}
             height={300}
           />
-          <p className="text-center text-[#222] max-w-2xl mx-auto mb-8"  >
+          <p className="text-center text-[#222] max-w-2xl mx-auto mb-8">
             استمتع بأشهى المأكولات المحضرة بعناية من أفضل الطهاة لدينا. تذوق
             النكهات الأصيلة والمكونات الطازجة.
           </p>
@@ -125,129 +133,201 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      <div className="container mx-auto max-w-6xl px-4 py-8">
-        {/* Categories */}
-        <div className="mb-8 pb-2">
-          <div className="flex flex-wrap gap-[4px]">
-            {categories.map((category) => (
-              <button
-                key={category}
-                onClick={() => setActiveCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
-                  activeCategory === category
-                    ? "bg-white text-[#222] hover:bg-gray-200"
-                    : "bg-gray-100 text-gray-700"
-                }`}
-              >
-                {category}
-              </button>
-            ))}
+      <div className="container mx-auto max-w-6xl px-4">
+        {/* Categories - Fixed on Scroll */}
+        <div className="sticky top-0 z-50 bg-[#eee] p-4">
+          <div className="flex items-center">
+            {/* Hamburger Menu Button */}
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 hover:bg-gray-200 rounded-lg mr-2 cursor-pointer"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+            
+            {/* Scrollable Categories */}
+            <div className="overflow-x-auto flex-1" style={scrollableStyle}>
+              <div className="flex gap-[4px] min-w-max">
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => {
+                      setActiveCategory(category);
+                      setIsSidebarOpen(false);
+                    }}
+                    className={`px-4 py-2 rounded-[8px] text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                      activeCategory === category
+                        ? "bg-white text-[#222] hover:bg-gray-200"
+                        : "bg-gray-100 text-gray-700"
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Meals Grid */}
-        {filteredMeals.length === 0 ? (
-          <div className="text-center py-12">
-            <Utensils className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              لا توجد وجبات
-            </h3>
-            <p className="text-gray-600">
-              لم نتمكن من العثور على وجبات تطابق بحثك. جرب بحثًا مختلفًا أو تصفح
-              جميع الفئات.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {filteredMeals.map((meal) => (
-              <Link
-                key={meal._id}
-                href={`/dashboard/${meal._id}`}
-                className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+        {/* Sidebar Navigation */}
+        <div className={`fixed top-0 right-0 h-full w-64 bg-white shadow-lg transform transition-transform duration-300 z-50 ${
+          isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}>
+          <div className="p-4">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-bold">الفئات</h2>
+              <button 
+                onClick={() => setIsSidebarOpen(false)}
+                className="p-2 hover:bg-gray-100 rounded-full"
               >
-                <div className="flex flex-col md:flex-row h-auto md:h-56">
-                  {/* Meal Image */}
-                  <div className="w-full md:w-1/3 relative overflow-hidden h-48 md:h-full">
-                    <Image
-                      src={meal.image || "/placeholder.svg"}
-                      alt={meal.name}
-                      className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                      width={500}
-                      height={300}
-                    />
-                    {meal.isNew && (
-                      <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                        جديد
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Meal Details */}
-                  <div className="w-full md:w-2/3 p-5 flex flex-col justify-between">
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="inline-block px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded-full">
-                          {meal.category}
-                        </span>
-                        <h2 className="text-xl font-bold text-gray-800 mr-2">
-                          {meal.name}
-                        </h2>
-                      </div>
-                      <p className="text-gray-600 text-sm line-clamp-2 mb-2 text-right">
-                        {meal.description}
-                      </p>
-
-                      {meal.preparationTime && (
-                        <div className="flex items-center justify-end text-gray-500 text-sm mb-2">
-                          <span>{meal.preparationTime} دقيقة</span>
-                          <Clock className="w-4 h-4 mr-1" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex justify-between items-end mt-4">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          router.push(`/dashboard/${meal._id}`);
-                        }}
-                        className="flex items-center text-primary hover:text-primary/80 text-sm font-medium transition-colors pb-[5px] cursor-pointer"
-                      >
-                        عرض التفاصيل
-                        <ChevronRight className="w-4 h-4 mr-1" />
-                      </button>
-
-                      <div className="text-right">
-                        <div className="flex items-center justify-end gap-1 mb-1">
-                          {meal.reviews && meal.reviews.length > 0 ? (
-                            <>
-                              {renderStars(
-                                meal.reviews.reduce(
-                                  (sum, review) => sum + review.rating,
-                                  0
-                                ) / meal.reviews.length
-                              )}
-                              <span className="text-xs text-gray-500 mr-1">
-                                ({meal.reviews.length})
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-xs text-gray-500">
-                              لا توجد تقييمات
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xl font-bold text-primary">
-                          {meal.price} EGP
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => {
+                    setActiveCategory(category);
+                    setIsSidebarOpen(false);
+                  }}
+                  className={`w-full text-right px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    activeCategory === category
+                      ? "bg-primary/10 text-primary"
+                      : "hover:bg-gray-100"
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
           </div>
+        </div>
+
+        {/* Overlay for sidebar */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 backdrop-blur-xs bg-opacity-50 z-40"
+            onClick={() => setIsSidebarOpen(false)}
+          />
         )}
+
+        {/* Content with padding top to account for fixed header */}
+        <div className="pt-4">
+          {/* Meals Grid */}
+          {filteredMeals.length === 0 ? (
+            <div className="text-center py-12">
+              <Utensils className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                لا توجد وجبات
+              </h3>
+              <p className="text-gray-600">
+                لم نتمكن من العثور على وجبات تطابق بحثك. جرب بحثًا مختلفًا أو تصفح
+                جميع الفئات.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {categories
+                .filter((cat) => cat !== "All")
+                .map((category) => {
+                  const categoryMeals = filteredMeals.filter(
+                    (meal) => meal.category === category
+                  );
+
+                if (categoryMeals.length === 0) return null;
+
+                return (
+                  <div key={category} className="space-y-4">
+                    <div className="flex items-center space-x-4 mb-4">
+                      <h2 className="text-l font-bold text-gray-800  pr-4">
+                        {category} 
+                      </h2>
+                      <div className="h-[1px] flex-grow bg-gray-200"></div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      {categoryMeals.map((meal) => (
+                        <Link
+                          key={meal._id}
+                          href={`/dashboard/${meal._id}`}
+                          className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+                        >
+                          <div className="flex flex-row h-26">
+                            {/* Meal Image */}
+                            <div className="w-1/3 relative overflow-hidden h-full">
+                              <Image
+                                src={meal.image || "/placeholder.svg"}
+                                alt={meal.name}
+                                className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500 p-[12px] rounded-[15px]"
+                                width={200}
+                                height={200}
+                              />
+                              {meal.isNew && (
+                                <div className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                  جديد
+                                </div>
+                              )}
+                            </div>
+
+                              {/* Meal Details */}
+                              <div className="w-2/3 p-3 flex flex-col justify-between">
+                                <div>
+                                  <div className="text-right mb-1">
+
+                                    <h2 className="text-[12px] font-bold text-gray-800 mr-2">
+                                      {meal.name}
+                                    </h2>
+                                  </div>
+                                  <p className="text-gray-600 text-xs line-clamp-2 mb-1 text-right">
+                                    {meal.description}
+                                  </p>
+
+                                  {meal.preparationTime && (
+                                    <div className="flex items-center justify-end text-gray-500 text-xs mb-1">
+                                      <span>{meal.preparationTime} دقيقة</span>
+                                      <Clock className="w-3 h-3 mr-1" />
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex justify-between items-end mt-2">
+                                  <div className="text-[12px] font-bold text-primary">
+                                    {meal.price} EGP
+                                  </div>
+
+                                  <div className="text-right">
+                                    <div className="flex items-center justify-end gap-0.5 mb-0.5">
+                                      {meal.reviews && meal.reviews.length > 0 ? (
+                                        <>
+                                          {renderStars(
+                                            meal.reviews.reduce(
+                                              (sum, review) => sum + review.rating,
+                                              0
+                                            ) / meal.reviews.length
+                                          )}
+                                          <span className="text-[10px] text-gray-500 mr-1">
+                                            ({meal.reviews.length})
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <span className="text-[10px] text-gray-500">
+                                          لا توجد تقييمات
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
