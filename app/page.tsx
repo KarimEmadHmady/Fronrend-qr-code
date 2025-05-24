@@ -2,10 +2,18 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-import Link from "next/link";
 import { Star, Utensils, Clock, Search, Menu, X } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from "next/image";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "react-toastify";
+
+interface Review {
+  _id: string;
+  name: string;
+  rating: number;
+  comment: string;
+}
 
 interface Meal {
   _id: string;
@@ -16,15 +24,20 @@ interface Meal {
   image: string;
   preparationTime?: number;
   isNew?: boolean;
-  reviews?: { rating: number }[];
+  reviews?: Review[];
 }
 
 const HomePage: React.FC = () => {
+  const { isAuthenticated, user } = useAuth() as { isAuthenticated: boolean; user: { id: string; username: string } | null };
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
+  const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
+  const [hoverRating, setHoverRating] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
   // Add custom styles for hiding scrollbar
   const scrollableStyle = {
@@ -247,13 +260,12 @@ const HomePage: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-1 gap-4">
                       {categoryMeals.map((meal) => (
-                        <Link
+                        <div
                           key={meal._id}
-                          href={`/dashboard/${meal._id}`}
-                          className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
+                          onClick={() => setSelectedMeal(meal)}
+                          className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
                         >
                           <div className="flex flex-row h-26">
-                            {/* Meal Image */}
                             <div className="w-1/3 relative overflow-hidden h-full">
                               <Image
                                 src={meal.image || "/placeholder.svg"}
@@ -269,66 +281,246 @@ const HomePage: React.FC = () => {
                               )}
                             </div>
 
-                              {/* Meal Details */}
-                              <div className="w-2/3 p-3 flex flex-col justify-between">
-                                <div>
-                                  <div className="text-right mb-1">
+                            <div className="w-2/3 p-3 flex flex-col justify-between">
+                              <div>
+                                <div className="text-right mb-1">
+                                  <h2 className="text-[12px] font-bold text-gray-800 mr-2">
+                                    {meal.name}
+                                  </h2>
+                                </div>
+                                <p className="text-gray-600 text-xs line-clamp-2 mb-1 text-right">
+                                  {meal.description}
+                                </p>
 
-                                    <h2 className="text-[12px] font-bold text-gray-800 mr-2">
-                                      {meal.name}
-                                    </h2>
+                                {meal.preparationTime && (
+                                  <div className="flex items-center justify-end text-gray-500 text-xs mb-1">
+                                    <span>{meal.preparationTime} دقيقة</span>
+                                    <Clock className="w-3 h-3 mr-1" />
                                   </div>
-                                  <p className="text-gray-600 text-xs line-clamp-2 mb-1 text-right">
-                                    {meal.description}
-                                  </p>
+                                )}
+                              </div>
 
-                                  {meal.preparationTime && (
-                                    <div className="flex items-center justify-end text-gray-500 text-xs mb-1">
-                                      <span>{meal.preparationTime} دقيقة</span>
-                                      <Clock className="w-3 h-3 mr-1" />
-                                    </div>
-                                  )}
+                              <div className="flex justify-between items-end mt-2">
+                                <div className="text-[12px] font-bold text-primary">
+                                  {meal.price} EGP
                                 </div>
 
-                                <div className="flex justify-between items-end mt-2">
-                                  <div className="text-[12px] font-bold text-primary">
-                                    {meal.price} EGP
-                                  </div>
-
-                                  <div className="text-right">
-                                    <div className="flex items-center justify-end gap-0.5 mb-0.5">
-                                      {meal.reviews && meal.reviews.length > 0 ? (
-                                        <>
-                                          {renderStars(
-                                            meal.reviews.reduce(
-                                              (sum, review) => sum + review.rating,
-                                              0
-                                            ) / meal.reviews.length
-                                          )}
-                                          <span className="text-[10px] text-gray-500 mr-1">
-                                            ({meal.reviews.length})
-                                          </span>
-                                        </>
-                                      ) : (
-                                        <span className="text-[10px] text-gray-500">
-                                          لا توجد تقييمات
+                                <div className="text-right">
+                                  <div className="flex items-center justify-end gap-0.5 mb-0.5">
+                                    {meal.reviews && meal.reviews.length > 0 ? (
+                                      <>
+                                        {renderStars(
+                                          meal.reviews.reduce(
+                                            (sum, review) => sum + review.rating,
+                                            0
+                                          ) / meal.reviews.length
+                                        )}
+                                        <span className="text-[10px] text-gray-500 mr-1">
+                                          ({meal.reviews.length})
                                         </span>
-                                      )}
-                                    </div>
+                                      </>
+                                    ) : (
+                                      <span className="text-[10px] text-gray-500">
+                                        لا توجد تقييمات
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          </Link>
-                        ))}
-                      </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  );
-                })}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
       </div>
+
+      {/* Meal Details Modal */}
+      {selectedMeal && (
+        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white w-[80%] max-h-[80vh]  overflow-y-auto rounded-[15px] shadow-xl relative scrollbar-hide ">
+            <button
+              onClick={() => setSelectedMeal(null)}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full cursor-pointer"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <div className="p-6">
+              <div className="flex flex-col md:flex-row gap-6 mb-8">
+                <div className="md:w-1/3">
+                  <Image
+                    src={selectedMeal.image || "/placeholder.svg"}
+                    alt={selectedMeal.name}
+                    width={400}
+                    height={400}
+                    className="rounded-lg object-cover w-full h-[300px]"
+                  />
+                </div>
+                <div className="md:w-2/3">
+                  <h2 className="text-2xl font-bold mb-4">{selectedMeal.name}</h2>
+                  <p className="text-gray-600 mb-4">{selectedMeal.description}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-primary font-bold text-xl">
+                      {selectedMeal.price} EGP
+                    </span>
+                    {selectedMeal.reviews && selectedMeal.reviews.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        {renderStars(
+                          selectedMeal.reviews.reduce(
+                            (sum, review) => sum + review.rating,
+                            0
+                          ) / selectedMeal.reviews.length
+                        )}
+                        <span className="text-sm text-gray-500">
+                          ({selectedMeal.reviews.length} تقييم)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Reviews Section */}
+              <div className="border-t pt-6">
+                <h3 className="text-xl font-bold mb-4">التقييمات والمراجعات</h3>
+                
+                {/* Existing Reviews */}
+                <div className="space-y-4 mb-6">
+                  {selectedMeal.reviews && selectedMeal.reviews.length > 0 ? (
+                    selectedMeal.reviews.map((review) => (
+                      <div key={review._id} className="bg-gray-50 rounded-lg p-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-semibold">{review.name}</span>
+                          <div className="flex">
+                            {renderStars(review.rating)}
+                          </div>
+                        </div>
+                        <p className="text-gray-600">{review.comment}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-gray-500">لا توجد تقييمات بعد</p>
+                  )}
+                </div>
+
+                {/* Add Review Form */}
+                {isAuthenticated ? (
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!newReview.rating || !newReview.comment.trim()) {
+                        toast.error("يرجى تعبئة جميع الحقول");
+                        return;
+                      }
+                      try {
+                        setSubmitting(true);
+                        const token = localStorage.getItem("token");
+                        const response = await fetch(
+                          `${process.env.NEXT_PUBLIC_API_URL}/meals/${selectedMeal._id}/reviews`,
+                          {
+                            method: "POST",
+                            headers: {
+                              "Content-Type": "application/json",
+                              Authorization: `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({
+                              rating: newReview.rating,
+                              comment: newReview.comment,
+                              userId: user?.id,
+                            }),
+                          }
+                        );
+                        if (response.ok) {
+                          toast.success("تم إضافة التقييم بنجاح");
+                          // Refresh meal data
+                          const updatedMeal = await fetch(
+                            `${process.env.NEXT_PUBLIC_API_URL}/meals/${selectedMeal._id}`
+                          ).then((res) => res.json());
+                          setSelectedMeal(updatedMeal);
+                          setNewReview({ rating: 0, comment: "" });
+                          // Update the meal in the meals array
+                          setMeals(meals.map(m => m._id === selectedMeal._id ? updatedMeal : m));
+                        }
+                      } catch (err) {
+                        console.error("Error adding review:", err);
+                        toast.error("حدث خطأ أثناء إضافة التقييم");
+                      } finally {
+                        setSubmitting(false);
+                      }
+                    }}
+                    className="space-y-4 border-t pt-6"
+                  >
+                    <h4 className="font-semibold">أضف تقييمك</h4>
+                    
+                    {/* Rating Stars */}
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setNewReview({ ...newReview, rating: star })}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          className="text-2xl focus:outline-none"
+                        >
+                          <Star
+                            className={`w-6 h-6 ${
+                              star <= (hoverRating || newReview.rating)
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "fill-gray-200 text-gray-200"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Comment Input */}
+                    <textarea
+                      value={newReview.comment}
+                      onChange={(e) =>
+                        setNewReview({ ...newReview, comment: e.target.value })
+                      }
+                      placeholder="اكتب تقييمك هنا..."
+                      className="w-full p-3 border rounded-lg resize-none h-32"
+                      required
+                    />
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className={`w-full py-2 rounded-lg text-white cursor-pointer ${
+                        submitting
+                          ? "bg-gray-400"
+                          : "bg-[#222] hover:bg-gray-700"
+                      }`}
+                    >
+                      {submitting ? "جاري الإرسال..." : "إرسال التقييم"}
+                    </button>
+                  </form>
+                ) : (
+                  <div className="text-center py-4 bg-gray-50 rounded-lg">
+                    <p className="text-gray-600">
+                      يجب تسجيل الدخول لإضافة تقييم
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+            <button
+              onClick={() => setSelectedMeal(null)}
+              className="absolute bottom-4  px-[5px]  rounded-[15px] border border-black cursor-pointer"
+            >
+              X Close
+            </button>
+        </div>
+      )}
     </div>
   );
 };
