@@ -204,7 +204,7 @@ const HomePage: React.FC = () => {
                     setActiveCategory(category);
                     setIsSidebarOpen(false);
                   }}
-                  className={`w-full text-right px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  className={`w-full text-right px-4 py-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                     activeCategory === category
                       ? "bg-[#222] text-[#eee]"
                       : "hover:bg-gray-100"
