@@ -4,7 +4,7 @@ const SocialIcons = () => {
   return (
     <div className="flex justify-center items-end gap-1 py-8 bg-[#eee]">
       <a
-        href="https://www.facebook.com/yourpage"
+        href="https://www.facebook.com/#"
         target="_blank"
         rel="noopener noreferrer"
         className="bg-white p-2 rounded-full shadow hover:bg-blue-100 transition"
@@ -13,7 +13,7 @@ const SocialIcons = () => {
       </a>
 
       <a
-        href="https://www.instagram.com/yourpage"
+        href="https://www.instagram.com/#"
         target="_blank"
         rel="noopener noreferrer"
         className="bg-white p-2 rounded-full shadow hover:bg-pink-100 transition"
@@ -22,7 +22,7 @@ const SocialIcons = () => {
       </a>
 
       <a
-        href="https://www.tiktok.com/@yourpage"
+        href="https://www.tiktok.com/#"
         target="_blank"
         rel="noopener noreferrer"
         className="bg-white p-2 rounded-full shadow hover:bg-gray-100 transition"
@@ -40,7 +40,7 @@ const SocialIcons = () => {
         </span>
 
         <a
-          href="https://www.google.com/maps/place/Your+Location/review"
+          href="https://www.google.com/maps/place/#location#here/review"
           target="_blank"
           rel="noopener noreferrer"
           className="bg-white p-2 rounded-full shadow hover:bg-green-100 transition"
