@@ -116,18 +116,17 @@ const HomePage: React.FC = () => {
     <div className="min-h-screen bg-[#eee] rtl">
       <AnimatedBackground />
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-primary/90 to-primary text-[#222] py-12 px-4 bg-[#eee]">
+      <div className="bg-gradient-to-r from-primary/90 to-primary text-[#222] py-4 px-3 bg-[#eee]">
         <div className="container mx-auto max-w-6xl">
           <Image
-            src={"/logo.png"}
-            alt="Logo"
-            className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
+            src="/banner.webp"
+            alt="Banner"
+            className="w-full h-[200px] sm:h-[300px] md:h-[400px] lg:h-[300px] lg:w-[500px] object-cover  object-[25%_28%]  block mx-auto mb-6 transition-transform duration-500 group-hover:scale-105 z-50 rounded-[15px]"
             width={500}
-            height={300}
+            height={400}
           />
-          <p className="text-center text-[#222] max-w-2xl mx-auto mb-8">
-            استمتع بأشهى المأكولات المحضرة بعناية من أفضل الطهاة لدينا. تذوق
-            النكهات الأصيلة والمكونات الطازجة.
+          <p className="text-center text-[#222] max-w-2xl mx-auto mb-5">
+          استمتع بأشهى أطباق الباستا والبيتزا الإيطالية الأصيلة، المحضّرة بعناية على يد أمهر الطهاة في قلب الزمالك.
           </p>
 
           {/* Search Bar */}

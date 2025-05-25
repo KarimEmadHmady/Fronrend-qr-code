@@ -10,6 +10,7 @@ import {
   FaUserPlus,
   FaPlus,
 } from "react-icons/fa";
+import Image from "next/image";
 import { FiLogOut } from "react-icons/fi";
 
 export default function Navbar() {
@@ -27,7 +28,13 @@ export default function Navbar() {
         href="/"
         className="text-[15px] sm:text-[25px] font-bold text-[#222]"
       >
-        Our Menu
+                    <Image
+              src={"/logo.png"}
+              alt="Logo"
+              className="h-[50px] w-[50px]"
+              width={75}
+              height={75}
+            />
       </Link>
 
       <div className="flex items-center gap-2">
