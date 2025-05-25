@@ -206,7 +206,7 @@ const HomePage: React.FC = () => {
                   }}
                   className={`w-full text-right px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
                     activeCategory === category
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-[#222] text-[#eee]"
                       : "hover:bg-gray-100"
                   }`}
                 >
