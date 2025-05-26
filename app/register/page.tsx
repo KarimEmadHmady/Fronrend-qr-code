@@ -3,17 +3,67 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import AnimatedBackground from "@/components/AnimatedBackground";
 
 export default function RegisterPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const { language } = useLanguage();
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Translations
+  const translations = {
+    createAccount: {
+      en: "Create Account",
+      ar: "إنشاء حساب"
+    },
+    username: {
+      en: "Username",
+      ar: "اسم المستخدم"
+    },
+    email: {
+      en: "Email",
+      ar: "البريد الإلكتروني"
+    },
+    password: {
+      en: "Password",
+      ar: "كلمة المرور"
+    },
+    register: {
+      en: "Register",
+      ar: "تسجيل"
+    },
+    registering: {
+      en: "Registering...",
+      ar: "جاري التسجيل..."
+    },
+    alreadyHaveAccount: {
+      en: "Already have an account?",
+      ar: "لديك حساب بالفعل؟"
+    },
+    login: {
+      en: "Login",
+      ar: "تسجيل الدخول"
+    },
+    yourName: {
+      en: "Your name",
+      ar: "اسمك"
+    },
+    emailPlaceholder: {
+      en: "name@email.com",
+      ar: "name@email.com"
+    },
+    passwordPlaceholder: {
+      en: "••••••••",
+      ar: "••••••••"
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,32 +81,28 @@ export default function RegisterPage() {
       );
 
       const data = await res.json();
-      console.log("Response from register API:", data);
 
       if (!res.ok) {
-        throw new Error(data.message || "Registration failed");
+        throw new Error(data.message || (language === 'ar' ? "فشل التسجيل" : "Registration failed"));
       }
 
       const { token, user } = data;
 
       if (token && user) {
         login(user, token);
-
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(user));
-
         router.push("/");
       } else {
-        throw new Error("Failed to retrieve token or user data");
+        throw new Error(language === 'ar' ? "فشل في استرداد بيانات المستخدم" : "Failed to retrieve user data");
       }
     } catch (error: unknown) {
       if (error instanceof Error) {
-        setError(error.message || "Something went wrong");
+        setError(error.message || (language === 'ar' ? "حدث خطأ ما" : "Something went wrong"));
       } else {
-        setError("Something went wrong");
+        setError(language === 'ar' ? "حدث خطأ ما" : "Something went wrong");
       }
-    }
-     finally {
+    } finally {
       setLoading(false);
     }
   };
@@ -67,9 +113,10 @@ export default function RegisterPage() {
       <form
         onSubmit={handleSubmit}
         className="bg-white p-8 sm:p-10 rounded-2xl shadow-lg w-full max-w-md transition-all"
+        dir={language === 'ar' ? 'rtl' : 'ltr'}
       >
         <h2 className="text-3xl font-extrabold text-center text-gray-800 mb-6">
-          Create Account
+          {translations.createAccount[language]}
         </h2>
 
         {error && (
@@ -83,7 +130,7 @@ export default function RegisterPage() {
             htmlFor="username"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Username
+            {translations.username[language]}
           </label>
           <input
             id="username"
@@ -92,7 +139,7 @@ export default function RegisterPage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            placeholder="Your name"
+            placeholder={translations.yourName[language]}
           />
         </div>
 
@@ -101,7 +148,7 @@ export default function RegisterPage() {
             htmlFor="email"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Email
+            {translations.email[language]}
           </label>
           <input
             id="email"
@@ -110,7 +157,7 @@ export default function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            placeholder="name@email.com"
+            placeholder={translations.emailPlaceholder[language]}
           />
         </div>
 
@@ -119,7 +166,7 @@ export default function RegisterPage() {
             htmlFor="password"
             className="block text-sm font-medium text-gray-700 mb-1"
           >
-            Password
+            {translations.password[language]}
           </label>
           <input
             id="password"
@@ -128,7 +175,7 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            placeholder="••••••••"
+            placeholder={translations.passwordPlaceholder[language]}
           />
         </div>
 
@@ -141,13 +188,13 @@ export default function RegisterPage() {
               : "bg-[#222] hover:bg-[#333]"
           }`}
         >
-          {loading ? "Registering..." : "Register"}
+          {loading ? translations.registering[language] : translations.register[language]}
         </button>
 
         <p className="text-sm text-center text-gray-500 mt-6">
-          Already have an account?{" "}
+          {translations.alreadyHaveAccount[language]}{" "}
           <a href="/login" className="text-blue-600 hover:underline">
-            Login
+            {translations.login[language]}
           </a>
         </p>
       </form>
