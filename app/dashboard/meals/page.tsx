@@ -8,18 +8,6 @@ import Image from 'next/image';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-interface Translation {
-  en: string;
-  ar: string;
-}
-
-interface Category {
-  _id: string;
-  name: Translation;
-  image: string;
-  description?: Translation;
-}
-
 interface Review {
   _id: string;
   name: string;
