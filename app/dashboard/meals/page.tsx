@@ -5,6 +5,20 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from 'next/image';
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+interface Translation {
+  en: string;
+  ar: string;
+}
+
+interface Category {
+  _id: string;
+  name: Translation;
+  image: string;
+  description?: Translation;
+}
 
 interface Review {
   _id: string;
@@ -15,17 +29,12 @@ interface Review {
 
 interface Meal {
   _id: string;
-  name: string;
-  description: string;
+  name: Translation;
+  description: Translation;
   price: number;
   image: string;
-  category: {
-    _id: string;
-    name: string;
-    image: string;
-    description?: string;
-  };
-  reviews?: Review[];
+  category: Category | null;
+  reviews: Review[];
 }
 
 const MealsPage = () => {
@@ -40,18 +49,41 @@ const MealsPage = () => {
     const fetchMeals = async () => {
       try {
         const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/meals`);
-        const mealsData: Meal[] = response.data;
+        const mealsData = response.data.map((meal: any) => ({
+          _id: meal._id,
+          name: meal.name || { en: '', ar: '' },
+          description: meal.description || { en: '', ar: '' },
+          price: meal.price || 0,
+          image: meal.image || '/placeholder.svg',
+          category: meal.category ? {
+            _id: meal.category._id,
+            name: meal.category.name || { en: '', ar: '' },
+            image: meal.category.image || '',
+            description: meal.category.description
+          } : null,
+          reviews: meal.reviews || []
+        }));
+
         setMeals(mealsData);
 
-        const uniqueCategories = [
-          "All",
-          ...new Set(mealsData.map((meal) => meal.category?.name || "Uncategorized")),
-        ];
-        setCategories(uniqueCategories);
+        // Extract unique categories
+        const uniqueCategories = ["All"];
+        const categorySet = new Set<string>();
+        
+        mealsData.forEach((meal: Meal) => {
+          if (meal.category?.name?.ar) {
+            categorySet.add(meal.category.name.ar);
+          }
+        });
+        
+        setCategories([...uniqueCategories, ...Array.from(categorySet)]);
         setLoading(false);
+        setError(null);
       } catch (err) {
         console.error("Error fetching meals:", err);
         setError("Failed to load meals. Please try again later.");
+        setMeals([]);
+        setCategories(["All"]);
         setLoading(false);
       }
     };
@@ -63,15 +95,21 @@ const MealsPage = () => {
     if (window.confirm("Are you sure you want to delete this meal?")) {
       try {
         const token = localStorage.getItem("token");
+        if (!token) {
+          toast.error("You need to be logged in!");
+          return;
+        }
+
         await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/meals/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
         setMeals(meals.filter((meal) => meal._id !== id));
+        toast.success("Meal deleted successfully");
       } catch (err) {
         console.error("Error deleting meal:", err);
-        setError("Failed to delete meal. Please try again later.");
+        toast.error("Failed to delete meal. Please try again later.");
       }
     }
   };
@@ -112,11 +150,17 @@ const MealsPage = () => {
     );
   }
 
-  if (error) return <div className="text-red-500">{error}</div>;
-
   const filteredMeals = meals.filter((meal) => {
-    const matchesSearch = meal.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = activeCategory === "All" || meal.category?.name === activeCategory;
+    const matchesSearch = 
+      (meal.name?.ar?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (meal.name?.en?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (meal.description?.ar?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (meal.description?.en?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = 
+      activeCategory === "All" || 
+      meal.category?.name?.ar === activeCategory;
+    
     return matchesSearch && matchesCategory;
   });
 
@@ -156,61 +200,78 @@ const MealsPage = () => {
       </div>
 
       {/* Meals Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredMeals.map((meal) => (
-          <div
-            key={meal._id}
-            className="bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300"
-          >
-            <Image 
-              src={meal.image || "/placeholder.svg"}
-              alt={meal.name}
-              className="w-full h-32 object-cover"
-              width={600}
-              height={400}
-            />
-            <div className="p-4">
-              <h2 className="text-xl font-semibold text-gray-800">
-                {meal.name}
-              </h2>
-              <p className="text-gray-600 mt-2 text-sm">{meal.description}</p>
-              <p className="text-lg font-bold text-green-500 mt-4">
-                Price: {meal.price} EGP
-              </p>
-              <p className="text-md text-gray-700 mt-2">
-                Category: {meal.category?.name || "Uncategorized"}
-              </p>
-              <div className="flex items-center justify-end gap-1 mb-1">
-                {meal.reviews && meal.reviews.length > 0 ? (
-                  <>
-                    {renderStars(
-                      meal.reviews.reduce((sum, review) => sum + review.rating, 0) / meal.reviews.length
-                    )}
-                    <span className="text-xs text-gray-500 mr-1">
-                      ({meal.reviews.length})
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-xs text-gray-500">لا توجد تقييمات</span>
-                )}
-              </div>
+      {error ? (
+        <div className="text-center text-red-500 py-8">{error}</div>
+      ) : filteredMeals.length === 0 ? (
+        <div className="text-center text-gray-500 py-8">No meals found</div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredMeals.map((meal) => (
+            <div
+              key={meal._id}
+              className="bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300"
+            >
+              <Image 
+                src={meal.image || "/placeholder.svg"}
+                alt={meal.name?.ar || 'Meal Image'}
+                className="w-full h-32 object-cover"
+                width={600}
+                height={400}
+              />
+              <div className="p-4">
+                <h2 className="text-xl font-semibold text-gray-800 mb-1">
+                  {meal.name?.ar || 'Untitled'}
+                </h2>
+                <h3 className="text-sm text-gray-600 mb-2">
+                  {meal.name?.en || 'Untitled'}
+                </h3>
+                <p className="text-gray-600 mt-2 text-sm mb-1">{meal.description?.ar || ''}</p>
+                <p className="text-gray-500 text-xs mb-2">{meal.description?.en || ''}</p>
+                <p className="text-lg font-bold text-green-500 mt-4">
+                  Price: {meal.price} EGP
+                </p>
+                <p className="text-md text-gray-700 mt-2">
+                  Category: {meal.category?.name?.ar || 'Uncategorized'} - {meal.category?.name?.en || 'Uncategorized'}
+                </p>
+                <div className="flex items-center justify-end gap-1 mb-1">
+                  {meal.reviews && meal.reviews.length > 0 ? (
+                    <>
+                      {renderStars(
+                        meal.reviews.reduce((sum, review) => sum + review.rating, 0) / meal.reviews.length
+                      )}
+                      <span className="text-xs text-gray-500 mr-1">
+                        ({meal.reviews.length})
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-xs text-gray-500">لا توجد تقييمات</span>
+                  )}
+                </div>
 
-              <Link
-                href={`/dashboard/meals/edit/${meal._id}`}
-                className="mt-4 inline-block text-blue-500 hover:text-blue-700 bg-[#eee] p-2 rounded cursor-pointer"
-              >
-                Edit Meal
-              </Link>
-              <button
-                onClick={() => deleteMeal(meal._id)}
-                className="mt-4 ml-4 inline-block text-red-500 hover:text-red-700 bg-[#eee] p-2 rounded cursor-pointer"
-              >
-                Delete Meal
-              </button>
+                <Link
+                  href={`/dashboard/meals/edit/${meal._id}`}
+                  className="mt-4 inline-block text-blue-500 hover:text-blue-700 bg-[#eee] p-2 rounded cursor-pointer"
+                >
+                  Edit
+                </Link>
+                <button
+                  onClick={() => deleteMeal(meal._id)}
+                  className="mt-4 ml-4 inline-block text-red-500 hover:text-red-700 bg-[#eee] p-2 rounded cursor-pointer"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      <Link
+        href="/dashboard/meals/add"
+        className="fixed bottom-8 right-8 bg-[#222] text-white p-4 rounded-full shadow-lg hover:bg-[#333] transition-colors"
+      >
+        + Add New Meal
+      </Link>
     </div>
   );
 };

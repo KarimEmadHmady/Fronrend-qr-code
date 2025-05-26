@@ -6,13 +6,7 @@ import { toast } from "react-toastify";
 import Image from "next/image";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
-
-interface Category {
-  _id: string;
-  name: string;
-  image: string;
-  description?: string;
-}
+import { Category, Translation } from "@/types";
 
 // Add proper error type
 interface ApiError {
@@ -27,8 +21,8 @@ const CategoriesPage = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newCategory, setNewCategory] = useState({
-    name: "",
-    description: "",
+    name: { en: "", ar: "" },
+    description: { en: "", ar: "" },
     image: null as File | null,
     imagePreview: "",
   });
@@ -41,11 +35,27 @@ const CategoriesPage = () => {
   const fetchCategories = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/categories`);
-      setCategories(response.data);
+      // Validate and transform the response data
+      const validCategories = response.data
+        .filter((category: any) => category && category._id && category.name)
+        .map((category: any) => ({
+          _id: category._id,
+          name: {
+            ar: category.name?.ar || '',
+            en: category.name?.en || ''
+          },
+          image: category.image || '/placeholder.svg',
+          description: category.description ? {
+            ar: category.description?.ar || '',
+            en: category.description?.en || ''
+          } : undefined
+        }));
+      setCategories(validCategories);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching categories:", error);
       toast.error("Failed to load categories");
+      setCategories([]);
       setLoading(false);
     }
   };
@@ -65,20 +75,29 @@ const CategoriesPage = () => {
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setNewCategory({ ...newCategory, [name]: value });
+    const [field, lang] = name.split("_");
+    setNewCategory({
+      ...newCategory,
+      [field]: {
+        ...newCategory[field as keyof typeof newCategory],
+        [lang]: value
+      }
+    });
   };
 
   // Add new category
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCategory.name || !newCategory.image) {
-      toast.error("Please provide both name and image");
+    if (!newCategory.name.en || !newCategory.name.ar || !newCategory.image) {
+      toast.error("Please provide name in both English and Arabic, and an image");
       return;
     }
 
     const formData = new FormData();
-    formData.append("name", newCategory.name);
-    if (newCategory.description) formData.append("description", newCategory.description);
+    formData.append("name[en]", newCategory.name.en);
+    formData.append("name[ar]", newCategory.name.ar);
+    formData.append("description[en]", newCategory.description.en);
+    formData.append("description[ar]", newCategory.description.ar);
     formData.append("image", newCategory.image);
 
     try {
@@ -96,8 +115,8 @@ const CategoriesPage = () => {
       fetchCategories();
       setIsModalOpen(false);
       setNewCategory({
-        name: "",
-        description: "",
+        name: { en: "", ar: "" },
+        description: { en: "", ar: "" },
         image: null,
         imagePreview: "",
       });
@@ -113,8 +132,10 @@ const CategoriesPage = () => {
     if (!editingCategory) return;
 
     const formData = new FormData();
-    formData.append("name", newCategory.name || editingCategory.name);
-    formData.append("description", newCategory.description || editingCategory.description || "");
+    formData.append("name[en]", newCategory.name.en || editingCategory.name.en);
+    formData.append("name[ar]", newCategory.name.ar || editingCategory.name.ar);
+    formData.append("description[en]", newCategory.description.en || editingCategory.description?.en || "");
+    formData.append("description[ar]", newCategory.description.ar || editingCategory.description?.ar || "");
     if (newCategory.image) {
       formData.append("image", newCategory.image);
     }
@@ -134,8 +155,8 @@ const CategoriesPage = () => {
       fetchCategories();
       setEditingCategory(null);
       setNewCategory({
-        name: "",
-        description: "",
+        name: { en: "", ar: "" },
+        description: { en: "", ar: "" },
         image: null,
         imagePreview: "",
       });
@@ -200,99 +221,156 @@ const CategoriesPage = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category) => (
-            <div
-              key={category._id}
-              className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200"
-            >
-              <div className="relative h-48">
-                <Image
-                  src={category.image}
-                  alt={category.name}
-                  className="object-cover"
-                  fill
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="text-xl font-semibold mb-2">{category.name}</h3>
-                <p className="text-gray-600 mb-4">{category.description}</p>
-                <div className="flex justify-end gap-2">
-                  <button
-                    onClick={() => {
-                      setEditingCategory(category);
-                      setNewCategory({
-                        name: category.name,
-                        description: category.description || "",
-                        image: null,
-                        imagePreview: category.image,
-                      });
-                    }}
-                    className="text-blue-600 hover:bg-blue-50 p-2 rounded-full cursor-pointer"
-                  >
-                    <Pencil size={20} />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteCategory(category._id)}
-                    className="text-red-600 hover:bg-red-50 p-2 rounded-full cursor-pointer"
-                  >
-                    <Trash2 size={20} />
-                  </button>
+          {categories && categories.length > 0 ? (
+            categories.map((category) => (
+              <div
+                key={category._id}
+                className="bg-white rounded-lg shadow-md overflow-hidden"
+              >
+                <div className="relative h-48">
+                  <Image
+                    src={category.image || '/placeholder.svg'}
+                    alt={category.name?.ar || 'Category Image'}
+                    className="object-cover"
+                    fill
+                  />
+                </div>
+                <div className="p-4">
+                  <h3 className="text-xl font-semibold mb-1">{category.name?.ar || 'Untitled'}</h3>
+                  <h4 className="text-sm text-gray-600 mb-2">{category.name?.en || 'Untitled'}</h4>
+                  {category.description && (
+                    <>
+                      <p className="text-gray-600 text-sm mb-1">{category.description.ar || ''}</p>
+                      <p className="text-gray-500 text-xs mb-2">{category.description.en || ''}</p>
+                    </>
+                  )}
+                  <div className="flex justify-end gap-2 mt-4">
+                    <button
+                      onClick={() => {
+                        setEditingCategory(category);
+                        setNewCategory({
+                          name: { 
+                            en: category.name?.en || '', 
+                            ar: category.name?.ar || '' 
+                          },
+                          description: category.description ? { 
+                            en: category.description.en || '', 
+                            ar: category.description.ar || '' 
+                          } : { en: "", ar: "" },
+                          image: null,
+                          imagePreview: category.image || '/placeholder.svg',
+                        });
+                      }}
+                      className="text-blue-600 hover:text-blue-800 bg-[#eee] p-2 rounded cursor-pointer"
+                    >
+                      <Pencil size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCategory(category._id)}
+                      className="text-red-600 hover:text-red-800 bg-[#eee] p-2 rounded cursor-pointer"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
               </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8 text-gray-500">
+              No categories available
             </div>
-          ))}
+          )}
         </div>
       </div>
 
-      {/* Modal for Add/Edit Category */}
+      {/* Add/Edit Category Modal */}
       {(isModalOpen || editingCategory) && (
-        <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-2xl font-bold mb-4">
-              {editingCategory ? "تعديل الفئة" : "إضافة فئة جديدة"}
+              {editingCategory ? "Edit Category" : "Add New Category"}
             </h2>
             <form onSubmit={editingCategory ? handleUpdateCategory : handleAddCategory}>
               <div className="mb-4">
-                <label className="block text-gray-700 mb-2">اسم الفئة</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name (English)
+                </label>
                 <input
                   type="text"
-                  name="name"
-                  value={newCategory.name}
+                  name="name_en"
+                  value={newCategory.name.en}
                   onChange={handleInputChange}
-                  className="w-full p-2 border rounded-lg"
+                  placeholder="Category Name in English"
+                  className="w-full px-3 py-2 border rounded-lg"
                   required
                 />
               </div>
+
               <div className="mb-4">
-                <label className="block text-gray-700 mb-2">الوصف</label>
-                <textarea
-                  name="description"
-                  value={newCategory.description}
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name (Arabic)
+                </label>
+                <input
+                  type="text"
+                  name="name_ar"
+                  value={newCategory.name.ar}
                   onChange={handleInputChange}
-                  className="w-full p-2 border rounded-lg"
-                  rows={3}
+                  placeholder="اسم الفئة بالعربية"
+                  className="w-full px-3 py-2 border rounded-lg text-right"
+                  required
                 />
               </div>
+
               <div className="mb-4">
-                <label className="block text-gray-700 mb-2">الصورة</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description (English)
+                </label>
+                <textarea
+                  name="description_en"
+                  value={newCategory.description.en}
+                  onChange={handleInputChange}
+                  placeholder="Category Description in English"
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description (Arabic)
+                </label>
+                <textarea
+                  name="description_ar"
+                  value={newCategory.description.ar}
+                  onChange={handleInputChange}
+                  placeholder="وصف الفئة بالعربية"
+                  className="w-full px-3 py-2 border rounded-lg text-right"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Image
+                </label>
                 <input
                   type="file"
                   onChange={handleFileChange}
-                  className="w-full p-2 border rounded-lg"
                   accept="image/*"
+                  className="w-full"
                   required={!editingCategory}
                 />
-                {(newCategory.imagePreview || (editingCategory && editingCategory.image)) && (
-                  <div className="mt-2 relative h-40">
+                {(newCategory.imagePreview || editingCategory?.image) && (
+                  <div className="mt-2">
                     <Image
-                      src={newCategory.imagePreview || (editingCategory ? editingCategory.image : "")}
+                      src={newCategory.imagePreview || editingCategory?.image || ""}
                       alt="Preview"
-                      className="object-cover rounded-lg"
-                      fill
+                      width={100}
+                      height={100}
+                      className="rounded-lg"
                     />
                   </div>
                 )}
               </div>
+
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
@@ -300,21 +378,21 @@ const CategoriesPage = () => {
                     setIsModalOpen(false);
                     setEditingCategory(null);
                     setNewCategory({
-                      name: "",
-                      description: "",
+                      name: { en: "", ar: "" },
+                      description: { en: "", ar: "" },
                       image: null,
                       imagePreview: "",
                     });
                   }}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer"
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
                 >
-                  إلغاء
+                  Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#222] text-white rounded-lg hover:bg-[#333] cursor-pointer"
+                  className="px-4 py-2 bg-[#222] text-white rounded-lg hover:bg-[#333]"
                 >
-                  {editingCategory ? "تحديث" : "إضافة"}
+                  {editingCategory ? "Update" : "Add"}
                 </button>
               </div>
             </form>

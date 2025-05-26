@@ -4,62 +4,117 @@ import axios from "axios";
 import { useRouter, useParams } from "next/navigation";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from 'next/image';
-import { Meal, Review } from "@/types"; // Ensure these types are defined in "@/types"
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+interface Translation {
+  en: string;
+  ar: string;
+}
+
 interface Category {
   _id: string;
-  name: string;
+  name: Translation;
   image: string;
-  description?: string;
+  description?: Translation;
+}
+
+interface Review {
+  _id: string;
+  name: string;
+  rating: number;
+  comment: string;
+}
+
+interface Meal {
+  _id: string;
+  name: Translation;
+  description: Translation;
+  price: string;
+  category: string;
+  image: string | null;
+  reviews: Review[];
 }
 
 const EditMealPage = () => {
-  const { id } = useParams<{ id: string }>() || { id: "" }; // Handle potential null value
+  const { id } = useParams<{ id: string }>() || { id: "" };
   const [categories, setCategories] = useState<Category[]>([]);
-  const [meal, setMeal] = useState<Meal>({
-    name: "",
-    description: "",
-    price: "",
-    category: "",
-    image: null,
-    reviews: [],
-  });
-  const [loading, setLoading] = useState<boolean>(false);
+  const [meal, setMeal] = useState<Meal | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
+        setError(null);
+
         // Fetch meal data
-        const mealResponse = await axios.get<Meal>(
-          `${process.env.NEXT_PUBLIC_API_URL}/meals/${id}`
-        );
-        setMeal(mealResponse.data);
+        const mealResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/meals/${id}`);
+        const mealData = mealResponse.data;
+        
+        // Transform meal data with proper validation
+        setMeal({
+          _id: mealData._id,
+          name: mealData.name || { en: '', ar: '' },
+          description: mealData.description || { en: '', ar: '' },
+          price: mealData.price?.toString() || '',
+          category: mealData.category?._id || '',
+          image: mealData.image || null,
+          reviews: mealData.reviews || []
+        });
 
         // Fetch categories
-        const categoriesResponse = await axios.get<Category[]>(
-          `${process.env.NEXT_PUBLIC_API_URL}/categories`
-        );
-        setCategories(categoriesResponse.data);
+        const categoriesResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/categories`);
+        const validCategories = categoriesResponse.data
+          .filter((cat: any) => cat && cat._id && cat.name)
+          .map((cat: any) => ({
+            _id: cat._id,
+            name: cat.name || { en: '', ar: '' },
+            image: cat.image || '',
+            description: cat.description
+          }));
+        setCategories(validCategories);
       } catch (error) {
         console.error("Error fetching data:", error);
+        setError("Failed to load meal data. Please try again.");
         toast.error("Failed to load data");
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchData();
+    if (id) {
+      fetchData();
+    }
   }, [id]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
+    if (!meal) return;
+
     const { name, value } = e.target;
-    setMeal({ ...meal, [name]: value });
+    if (name === "price" || name === "category") {
+      setMeal({ ...meal, [name]: value });
+    } else {
+      // Handle translation fields
+      const [field, lang] = name.split("_");
+      setMeal({
+        ...meal,
+        [field]: {
+          ...meal[field as keyof Pick<Meal, "name" | "description">],
+          [lang]: value
+        }
+      });
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!meal) return;
+    
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setMeal({ ...meal, image: URL.createObjectURL(file) });
@@ -68,14 +123,23 @@ const EditMealPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!meal) return;
+
+    if (!meal.name.en || !meal.name.ar || !meal.description.en || !meal.description.ar) {
+      toast.error("Please provide meal name and description in both English and Arabic");
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("name", meal.name);
-    formData.append("description", meal.description);
+    formData.append("name[en]", meal.name.en);
+    formData.append("name[ar]", meal.name.ar);
+    formData.append("description[en]", meal.description.en);
+    formData.append("description[ar]", meal.description.ar);
     formData.append("price", meal.price);
     formData.append("category", meal.category);
     if (meal.image) formData.append("image", meal.image);
 
-    setLoading(true);
+    setSubmitting(true);
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -90,13 +154,13 @@ const EditMealPage = () => {
           },
         }
       );
-      setLoading(false);
       toast.success("Meal updated successfully");
       router.push("/dashboard/meals");
     } catch (error) {
-      setLoading(false);
       console.error("Error updating meal:", error);
       toast.error("Failed to update meal");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -170,6 +234,57 @@ const EditMealPage = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#eee]">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div className="text-gray-600 font-medium">
+            <Image 
+              src="/logo.png"
+              className="h-[150px] w-[150px] object-center block mx-auto mb-6"
+              alt="Logo"
+              width={600}
+              height={400}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#eee]">
+        <div className="text-center text-red-500">
+          <p>{error}</p>
+          <button
+            onClick={() => router.push("/dashboard/meals")}
+            className="mt-4 px-4 py-2 bg-[#222] text-white rounded-lg hover:bg-[#333]"
+          >
+            Back to Meals
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!meal) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#eee]">
+        <div className="text-center text-gray-500">
+          <p>Meal not found</p>
+          <button
+            onClick={() => router.push("/dashboard/meals")}
+            className="mt-4 px-4 py-2 bg-[#222] text-white rounded-lg hover:bg-[#333]"
+          >
+            Back to Meals
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#eee] flex items-center justify-center px-4 flex-col">
       <AnimatedBackground />
@@ -193,103 +308,147 @@ const EditMealPage = () => {
           </div>
         )}
 
-        <input
-          type="text"
-          name="name"
-          value={meal.name}
-          onChange={handleChange}
-          placeholder="Meal Name"
-          required
-          className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name (English)</label>
+          <input
+            type="text"
+            name="name_en"
+            value={meal.name.en}
+            onChange={handleChange}
+            placeholder="Meal Name in English"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
-        <input
-          type="text"
-          name="description"
-          value={meal.description}
-          onChange={handleChange}
-          placeholder="Meal Description"
-          required
-          className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name (Arabic)</label>
+          <input
+            type="text"
+            name="name_ar"
+            value={meal.name.ar}
+            onChange={handleChange}
+            placeholder="اسم الوجبة بالعربية"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+          />
+        </div>
 
-        <input
-          type="number"
-          name="price"
-          value={meal.price}
-          onChange={handleChange}
-          placeholder="Meal Price"
-          required
-          className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description (English)</label>
+          <input
+            type="text"
+            name="description_en"
+            value={meal.description.en}
+            onChange={handleChange}
+            placeholder="Meal Description in English"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
-        <select
-          name="category"
-          value={meal.category}
-          onChange={handleChange}
-          className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          required
-        >
-          <option value="">اختر الفئة</option>
-          {categories.map((category) => (
-            <option key={category._id} value={category._id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description (Arabic)</label>
+          <input
+            type="text"
+            name="description_ar"
+            value={meal.description.ar}
+            onChange={handleChange}
+            placeholder="وصف الوجبة بالعربية"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+          />
+        </div>
 
-        <input
-          type="file"
-          onChange={handleFileChange}
-          className="w-full mb-6 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+          <input
+            type="number"
+            name="price"
+            value={meal.price}
+            onChange={handleChange}
+            placeholder="Price"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+          <select
+            name="category"
+            value={meal.category}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select Category</option>
+            {categories.map((category) => (
+              <option key={category._id} value={category._id}>
+                {category.name?.ar || 'Untitled'} - {category.name?.en || 'Untitled'}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Change Image
+          </label>
+          <input
+            type="file"
+            name="image"
+            onChange={handleFileChange}
+            accept="image/*"
+            className="w-full"
+          />
+        </div>
 
         <button
           type="submit"
-          disabled={loading}
-          className={`w-full py-2 rounded-lg text-white font-semibold transition cursor-pointer ${
-            loading
-              ? "bg-blue-300 cursor-not-allowed"
-              : "bg-[#222] hover:bg-[#333]"
+          disabled={submitting}
+          className={`w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+            submitting ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
-          {loading ? "جاري التحديث..." : "تحديث الوجبة"}
+          {submitting ? "Updating..." : "Update Meal"}
         </button>
       </form>
 
-      <div className="mt-10 w-full max-w-3xl mx-auto">
-        <h3 className="text-xl font-semibold mb-4">التقييمات</h3>
+      {/* Reviews Section */}
+      <div className="bg-white p-8 sm:p-10 rounded-2xl shadow-lg w-full max-w-md mt-8 z-10">
+        <h3 className="text-2xl font-bold mb-4">Reviews</h3>
         {meal.reviews.length > 0 ? (
-          <div className="space-y-4">
-            {meal.reviews.map((review: Review) => (
-              <div
-                key={review._id}
-                className="p-6 border rounded-lg shadow-md bg-white flex flex-col space-y-2"
-              >
-                <div className="flex items-center space-x-3">
+          meal.reviews.map((review) => (
+            <div
+              key={review._id}
+              className="border-b border-gray-200 py-4 last:border-0"
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div>
                   <p className="font-semibold">{review.name}</p>
-                  <span className="text-gray-500">التقييم: {review.rating}</span>
+                  <p className="text-yellow-500">{"★".repeat(review.rating)}</p>
                 </div>
-                <p className="text-gray-700">التعليق: {review.comment}</p>
-                <div className="flex space-x-4 mt-3">
+                <div className="flex gap-2">
                   <button
                     onClick={() => handleEditReview(review._id)}
-                    className="text-blue-600 hover:underline bg-[#eee] p-[5px] rounded cursor-pointer"
+                    className="text-blue-600 hover:text-blue-800"
                   >
-                    تعديل
+                    Edit
                   </button>
                   <button
                     onClick={() => handleDeleteReview(review._id)}
-                    className="text-red-600 hover:underline bg-[#eee] p-[5px] rounded cursor-pointer"
+                    className="text-red-600 hover:text-red-800"
                   >
-                    حذف
+                    Delete
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+              <p className="text-gray-600">{review.comment}</p>
+            </div>
+          ))
         ) : (
-          <p className="text-gray-600">لا توجد تقييمات حتى الآن.</p>
+          <p className="text-gray-500">No reviews yet.</p>
         )}
       </div>
     </div>

@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import "./globals.css";
 import SocialIcons from "@/components/SocialIcons";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -12,15 +13,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en"  >
-      <head></head>
+    <html>
       <body>
         <AuthProvider>
-          <ScrollToTop />
-          <Navbar />
-          <ToastContainer />
-          {children}
-          <SocialIcons />
+          <LanguageProvider>
+            <ScrollToTop />
+            <Navbar />
+            {children}
+            <SocialIcons />
+            <ToastContainer />
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>

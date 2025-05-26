@@ -1,4 +1,6 @@
 import { FaFacebookF, FaInstagram, FaTiktok, FaGoogle } from "react-icons/fa";
+import LanguageSwitcher from "./LanguageSwitcher";
+
 
 const SocialIcons = () => {
   return (
@@ -30,6 +32,7 @@ const SocialIcons = () => {
         <FaTiktok className="text-black w-5 h-5" />
       </a>
 
+        <LanguageSwitcher />
       <div className="relative flex flex-col items-center">
         <span
           className="mb-2 text-sm text-gray-700 font-medium px-3 py-1 bg-white rounded shadow whitespace-nowrap relative

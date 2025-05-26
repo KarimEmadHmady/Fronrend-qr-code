@@ -6,12 +6,19 @@ import { Star, Utensils, Clock, Search, Menu, X } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from '@/contexts/LanguageContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+
+interface Translation {
+  en: string;
+  ar: string;
+}
 
 interface Category {
   _id: string;
-  name: string;
+  name: Translation;
   image: string;
-  description?: string;
+  description?: Translation;
 }
 
 interface Review {
@@ -23,8 +30,8 @@ interface Review {
 
 interface Meal {
   _id: string;
-  name: string;
-  description: string;
+  name: Translation;
+  description: Translation;
   price: number;
   image: string;
   preparationTime?: number;
@@ -34,6 +41,7 @@ interface Meal {
 }
 
 const HomePage: React.FC = () => {
+  const { language } = useLanguage();
   const { } = useAuth() as { isAuthenticated: boolean; user: { id: string; username: string } | null };
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -61,27 +69,41 @@ const HomePage: React.FC = () => {
         );
         
         // Transform the data to ensure consistent object structure
-        const transformedMeals = mealsResponse.data.map(meal => ({
-          _id: meal._id,
-          name: meal.name,
-          description: meal.description,
-          price: meal.price,
-          image: meal.image,
-          preparationTime: meal.preparationTime,
-          isNew: meal.isNew,
-          category: meal.category ? {
-            _id: meal.category._id,
-            name: meal.category.name,
-            image: meal.category.image,
-            description: meal.category.description
-          } : null,
-          reviews: meal.reviews ? meal.reviews.map(review => ({
-            _id: review._id,
-            name: review.name,
-            rating: review.rating,
-            comment: review.comment
-          })) : []
-        }));
+        const transformedMeals = mealsResponse.data
+          .filter(meal => meal && meal._id) // Filter out invalid meals
+          .map(meal => ({
+            _id: meal._id,
+            name: {
+              en: meal.name?.en || '',
+              ar: meal.name?.ar || ''
+            },
+            description: {
+              en: meal.description?.en || '',
+              ar: meal.description?.ar || ''
+            },
+            price: meal.price || 0,
+            image: meal.image || '/placeholder.svg',
+            preparationTime: meal.preparationTime,
+            isNew: meal.isNew,
+            category: meal.category ? {
+              _id: meal.category._id,
+              name: {
+                en: meal.category.name?.en || '',
+                ar: meal.category.name?.ar || ''
+              },
+              image: meal.category.image || '/placeholder.svg',
+              description: meal.category.description ? {
+                en: meal.category.description.en || '',
+                ar: meal.category.description.ar || ''
+              } : undefined
+            } : null,
+            reviews: Array.isArray(meal.reviews) ? meal.reviews.map(review => ({
+              _id: review._id || '',
+              name: review.name || '',
+              rating: Number(review.rating) || 0,
+              comment: review.comment || ''
+            })) : []
+          }));
 
         setMeals(transformedMeals);
 
@@ -90,13 +112,21 @@ const HomePage: React.FC = () => {
           `${process.env.NEXT_PUBLIC_API_URL}/categories`
         );
 
-        // Transform categories data
-        const transformedCategories = categoriesResponse.data.map(category => ({
-          _id: category._id,
-          name: category.name,
-          image: category.image,
-          description: category.description
-        }));
+        // Transform categories data with validation
+        const transformedCategories = categoriesResponse.data
+          .filter(category => category && category._id) // Filter out invalid categories
+          .map(category => ({
+            _id: category._id,
+            name: {
+              en: category.name?.en || '',
+              ar: category.name?.ar || ''
+            },
+            image: category.image || '/placeholder.svg',
+            description: category.description ? {
+              en: category.description.en || '',
+              ar: category.description.ar || ''
+            } : undefined
+          }));
 
         setCategories(transformedCategories);
         setLoading(false);
@@ -110,17 +140,19 @@ const HomePage: React.FC = () => {
   }, []);
 
   const categoryNames = ["All", ...new Set(meals.map(meal => 
-    meal.category ? meal.category.name : "Uncategorized"
+    language === 'ar' ? (meal.category?.name?.ar || "غير مصنف") : (meal.category?.name?.en || "Uncategorized")
   ))];
 
   const filteredMeals = meals.filter(meal => {
     const matchesSearch =
-      meal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      meal.description.toLowerCase().includes(searchTerm.toLowerCase());
+      (meal.name?.ar?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      meal.name?.en?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      meal.description?.ar?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      meal.description?.en?.toLowerCase().includes(searchTerm.toLowerCase())) ?? false;
     
     const matchesCategory =
       activeCategory === "All" || 
-      (meal.category && meal.category.name === activeCategory);
+      meal.category?.name?.ar === activeCategory;
     
     return matchesSearch && matchesCategory;
   });
@@ -162,20 +194,27 @@ const HomePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#eee] rtl">
+    <div className={`min-h-screen bg-[#eee] ${language === 'ar' ? 'rtl' : 'ltr'}`}>
       <AnimatedBackground />
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-primary/90 to-primary text-[#222] py-4 px-3 bg-[#eee] ">
-        <div className="container mx-auto max-w-6xl ">
+      <div className="bg-gradient-to-r from-primary/90 to-primary text-[#222] py-4 px-3 bg-[#eee]">
+        <div className="container mx-auto max-w-6xl relative">
+          {/* Add Language Switcher */}
+          <div className="absolute top-2 right-2 z-10">
+            <LanguageSwitcher />
+          </div>
+
           <Image
             src="/banner.webp"
             alt="Banner"
-            className="w-full h-[200px] sm:h-[300px] md:h-[400px] lg:h-[300px] lg:w-[500px] object-cover  object-[25%_28%]  block mx-auto mb-6 transition-transform duration-500 group-hover:scale-105  rounded-[15px]"
+            className="w-full h-[200px] sm:h-[300px] md:h-[400px] lg:h-[300px] lg:w-[500px] object-cover object-[25%_28%] block mx-auto mb-6 transition-transform duration-500 group-hover:scale-105 rounded-[15px]"
             width={500}
             height={400}
           />
           <p className="text-center text-[#222] max-w-2xl mx-auto mb-5">
-          استمتع بأشهى أطباق الباستا والبيتزا الإيطالية الأصيلة، المحضّرة بعناية على يد أمهر الطهاة في قلب الزمالك.
+            {language === 'ar' 
+              ? "استمتع بأشهى أطباق الباستا والبيتزا الإيطالية الأصيلة، المحضّرة بعناية على يد أمهر الطهاة في قلب الزمالك."
+              : "Enjoy the most delicious authentic Italian pasta and pizza dishes, carefully prepared by skilled chefs in the heart of Zamalek."}
           </p>
 
           {/* Search Bar */}
@@ -186,7 +225,7 @@ const HomePage: React.FC = () => {
             <input
               type="text"
               className="block w-full p-3 pr-10 text-right bg-[#222] border border-[#222] rounded-lg placeholder-white/60 text-white focus:outline-none focus:ring-2 focus:ring-white/30"
-              placeholder="ابحث عن وجبتك المفضلة..."
+              placeholder={language === 'ar' ? "ابحث عن وجبتك المفضلة..." : "Search for your favorite meal..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -222,7 +261,9 @@ const HomePage: React.FC = () => {
                         : "bg-gray-100 text-gray-700"
                     }`}
                   >
-                    {categoryName}
+                    {categoryName === "All" 
+                      ? (language === 'ar' ? "عرض الكل" : "All") 
+                      : categoryName}
                   </button>
                 ))}
               </div>
@@ -236,7 +277,9 @@ const HomePage: React.FC = () => {
         }`}>
           <div className="p-4">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-bold">الفئات</h2>
+              <h2 className="text-lg font-bold">
+                {language === 'ar' ? "الفئات" : "Categories"}
+              </h2>
               <button 
                 onClick={() => setIsSidebarOpen(false)}
                 className="p-2 hover:bg-gray-100 rounded-full"
@@ -256,30 +299,32 @@ const HomePage: React.FC = () => {
                     : "hover:bg-gray-100"
                 }`}
               >
-                عرض الكل
+                {language === 'ar' ? "عرض الكل" : "Show All"}
               </button>
               {categories.map((category) => (
                 <div
-                  key={category._id}
+                  key={category?._id}
                   className={`w-full flex flex-col items-center p-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                    activeCategory === category.name
+                    activeCategory === (language === 'ar' ? category?.name?.ar : category?.name?.en)
                       ? "bg-[#222] text-[#eee]"
                       : "hover:bg-gray-100"
                   }`}
                   onClick={() => {
-                    setActiveCategory(category.name);
+                    setActiveCategory(language === 'ar' ? category?.name?.ar || "غير مصنف" : category?.name?.en || "Uncategorized");
                     setIsSidebarOpen(false);
                   }}
                 >
                   <div className="relative w-16 h-16 mb-2 overflow-hidden rounded-full">
                     <Image
-                      src={category.image}
-                      alt={category.name}
+                      src={category?.image || "/placeholder.svg"}
+                      alt={language === 'ar' ? category?.name?.ar || "غير مصنف" : category?.name?.en || "Uncategorized"}
                       className="object-cover"
                       fill
                     />
                   </div>
-                  <span>{category.name}</span>
+                  <span>
+                    {language === 'ar' ? category?.name?.ar || "غير مصنف" : category?.name?.en || "Uncategorized"}
+                  </span>
                 </div>
               ))}
             </div>
@@ -301,11 +346,12 @@ const HomePage: React.FC = () => {
             <div className="text-center py-12">
               <Utensils className="h-12 w-12 mx-auto text-gray-400 mb-4" />
               <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                لا توجد وجبات
+                {language === 'ar' ? "لا توجد وجبات" : "No meals found"}
               </h3>
               <p className="text-gray-600">
-                لم نتمكن من العثور على وجبات تطابق بحثك. جرب بحثًا مختلفًا أو تصفح
-                جميع الفئات.
+                {language === 'ar' 
+                  ? "لم نتمكن من العثور على وجبات تطابق بحثك. جرب بحثًا مختلفًا أو تصفح جميع الفئات."
+                  : "We couldn't find any meals matching your search. Try a different search or browse all categories."}
               </p>
             </div>
           ) : (
@@ -313,6 +359,8 @@ const HomePage: React.FC = () => {
               {activeCategory === "All" ? (
                 // Show all categories
                 categories.map((category) => {
+                  if (!category || !category._id) return null;
+
                   const categoryMeals = filteredMeals.filter(meal => 
                     meal.category && meal.category._id === category._id
                   );
@@ -323,11 +371,11 @@ const HomePage: React.FC = () => {
                     <div key={category._id} className="space-y-4">
                       <div className="flex items-center space-x-4 mb-4">
                         <h2 className="text-l font-bold text-gray-800 pr-4">
-                          {category.name}
+                          {language === 'ar' ? category.name?.ar || 'غير مصنف' : category.name?.en || 'Uncategorized'}
                         </h2>
                         <div className="h-[1px] flex-grow bg-gray-200"></div>
                       </div>
-                      <div className="grid grid-cols-1 gap-4">
+                      <div className="grid grid-cols-1 gap-4" dir="ltr">
                         {categoryMeals.map((meal) => (
                           <div
                             key={meal._id}
@@ -338,62 +386,65 @@ const HomePage: React.FC = () => {
                               <div className="w-1/3 relative overflow-hidden h-full">
                                 <Image
                                   src={meal.image || "/placeholder.svg"}
-                                  alt={meal.name}
+                                  alt={language === 'ar' ? meal.name?.ar || '' : meal.name?.en || ''}
                                   className="h-[110px] w-[110px] object-cover object-center group-hover:scale-105 transition-transform duration-500 p-[12px] rounded-[15px]"
                                   width={200}
                                   height={200}
                                 />
                                 {meal.isNew && (
                                   <div className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                                    جديد
+                                    {language === 'ar' ? "جديد" : "New"}
                                   </div>
                                 )}
                               </div>
 
                               <div className="w-2/3 p-3 flex flex-col justify-between">
                                 <div>
-                                  <div className="text-right mb-1">
-                                    <h2 className="text-[12px] font-bold text-gray-800 mr-2">
-                                      {meal.name}
+                                  <div dir={language === 'ar' ? 'rtl' : 'ltr'} className="mb-1">
+                                    <h2 className="text-[12px] font-bold text-gray-800 mb-1">
+                                      {language === 'ar' ? meal.name?.ar || '' : meal.name?.en || ''}
                                     </h2>
+                                    <p className="text-gray-600 text-xs line-clamp-2 mb-[7px]">
+                                      {language === 'ar' ? meal.description?.ar || '' : meal.description?.en || ''}
+                                    </p>
                                   </div>
-                                  <p className="text-gray-600 text-xs line-clamp-2 mb-[7px] text-right">
-                                    {meal.description}
-                                  </p>
 
                                   {meal.preparationTime && (
-                                    <div className="flex items-center justify-end text-gray-500 text-xs mb-1">
-                                      <span>{meal.preparationTime} دقيقة</span>
-                                      <Clock className="w-3 h-3 mr-1" />
+                                    <div dir={language === 'ar' ? 'rtl' : 'ltr'} className="flex items-center text-gray-500 text-xs mb-1">
+                                      <Clock className="w-3 h-3 mx-1" />
+                                      <span>
+                                        {language === 'ar' 
+                                          ? `${meal.preparationTime} دقيقة`
+                                          : `${meal.preparationTime} minutes`
+                                        }
+                                      </span>
                                     </div>
                                   )}
                                 </div>
 
-                                <div className="flex justify-end gap-8 items-end">
+                                <div className="flex justify-between items-end">
                                   <div className="text-[12px] font-bold text-primary">
                                     {meal.price} EGP
                                   </div>
 
-                                  <div className="text-right">
-                                    <div className="flex items-center justify-end gap-0.5 mb-0.5">
-                                      {meal.reviews && meal.reviews.length > 0 ? (
-                                        <>
-                                          {renderStars(
-                                            meal.reviews.reduce(
-                                              (sum, review) => sum + review.rating,
-                                              0
-                                            ) / meal.reviews.length
-                                          )}
-                                          <span className="text-[10px] text-gray-500 mr-1">
-                                            ({meal.reviews.length})
-                                          </span>
-                                        </>
-                                      ) : (
+                                  <div dir={language === 'ar' ? 'rtl' : 'ltr'} className="flex items-center gap-2">
+                                    {meal.reviews && meal.reviews.length > 0 ? (
+                                      <>
                                         <span className="text-[10px] text-gray-500">
-                                          لا توجد تقييمات
+                                          ({meal.reviews.length})
                                         </span>
-                                      )}
-                                    </div>
+                                        {renderStars(
+                                          meal.reviews.reduce(
+                                            (sum, review) => sum + review.rating,
+                                            0
+                                          ) / meal.reviews.length
+                                        )}
+                                      </>
+                                    ) : (
+                                      <span className="text-[10px] text-gray-500">
+                                        {language === 'ar' ? "لا توجد تقييمات" : "No reviews"}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -406,7 +457,7 @@ const HomePage: React.FC = () => {
                 })
               ) : (
                 // Show meals for selected category only
-                <div className="grid grid-cols-1 gap-4">
+                <div className="grid grid-cols-1 gap-4" dir="ltr">
                   {filteredMeals.map((meal) => (
                     <div
                       key={meal._id}
@@ -417,62 +468,65 @@ const HomePage: React.FC = () => {
                         <div className="w-1/3 relative overflow-hidden h-full">
                           <Image
                             src={meal.image || "/placeholder.svg"}
-                            alt={meal.name}
+                            alt={language === 'ar' ? meal.name?.ar || '' : meal.name?.en || ''}
                             className="h-[110px] w-[110px] object-cover object-center group-hover:scale-105 transition-transform duration-500 p-[12px] rounded-[15px]"
                             width={200}
                             height={200}
                           />
                           {meal.isNew && (
                             <div className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                              جديد
+                              {language === 'ar' ? "جديد" : "New"}
                             </div>
                           )}
                         </div>
 
                         <div className="w-2/3 p-3 flex flex-col justify-between">
                           <div>
-                            <div className="text-right mb-1">
-                              <h2 className="text-[12px] font-bold text-gray-800 mr-2">
-                                {meal.name}
+                            <div dir={language === 'ar' ? 'rtl' : 'ltr'} className="mb-1">
+                              <h2 className="text-[12px] font-bold text-gray-800 mb-1">
+                                {language === 'ar' ? meal.name?.ar || '' : meal.name?.en || ''}
                               </h2>
+                              <p className="text-gray-600 text-xs line-clamp-2 mb-[7px]">
+                                {language === 'ar' ? meal.description?.ar || '' : meal.description?.en || ''}
+                              </p>
                             </div>
-                            <p className="text-gray-600 text-xs line-clamp-2 mb-[7px] text-right">
-                              {meal.description}
-                            </p>
 
                             {meal.preparationTime && (
-                              <div className="flex items-center justify-end text-gray-500 text-xs mb-1">
-                                <span>{meal.preparationTime} دقيقة</span>
-                                <Clock className="w-3 h-3 mr-1" />
+                              <div dir={language === 'ar' ? 'rtl' : 'ltr'} className="flex items-center text-gray-500 text-xs mb-1">
+                                <Clock className="w-3 h-3 mx-1" />
+                                <span>
+                                  {language === 'ar' 
+                                    ? `${meal.preparationTime} دقيقة`
+                                    : `${meal.preparationTime} minutes`
+                                  }
+                                </span>
                               </div>
                             )}
                           </div>
 
-                          <div className="flex justify-end gap-8 items-end">
+                          <div className="flex justify-between items-end">
                             <div className="text-[12px] font-bold text-primary">
                               {meal.price} EGP
                             </div>
 
-                            <div className="text-right">
-                              <div className="flex items-center justify-end gap-0.5 mb-0.5">
-                                {meal.reviews && meal.reviews.length > 0 ? (
-                                  <>
-                                    {renderStars(
-                                      meal.reviews.reduce(
-                                        (sum, review) => sum + review.rating,
-                                        0
-                                      ) / meal.reviews.length
-                                    )}
-                                    <span className="text-[10px] text-gray-500 mr-1">
-                                      ({meal.reviews.length})
-                                    </span>
-                                  </>
-                                ) : (
+                            <div dir={language === 'ar' ? 'rtl' : 'ltr'} className="flex items-center gap-2">
+                              {meal.reviews && meal.reviews.length > 0 ? (
+                                <>
                                   <span className="text-[10px] text-gray-500">
-                                    لا توجد تقييمات
+                                    ({meal.reviews.length})
                                   </span>
-                                )}
-                              </div>
+                                  {renderStars(
+                                    meal.reviews.reduce(
+                                      (sum, review) => sum + review.rating,
+                                      0
+                                    ) / meal.reviews.length
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-[10px] text-gray-500">
+                                  {language === 'ar' ? "لا توجد تقييمات" : "No reviews"}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -501,27 +555,48 @@ const HomePage: React.FC = () => {
                 <div className="md:w-1/3">
                   <Image
                     src={selectedMeal.image || "/placeholder.svg"}
-                    alt={selectedMeal.name}
+                    alt={language === 'ar' ? selectedMeal.name?.ar : selectedMeal.name?.en}
                     width={400}
                     height={400}
                     className="rounded-lg object-cover w-full h-[181px]"
                   />
                 </div>
                 <div className="md:w-2/3">
-                  <h2 className="text-2xl font-bold mb-2">{selectedMeal.name}</h2>
-                  <p className="text-gray-600 mb-4">{selectedMeal.description}</p>
+                  <h2 className="text-2xl font-bold mb-2">
+                    {language === 'ar' ? selectedMeal.name?.ar : selectedMeal.name?.en}
+                  </h2>
+                  <p className="text-gray-600 mb-4">
+                    {language === 'ar' ? selectedMeal.description?.ar : selectedMeal.description?.en}
+                  </p>
                   <div className="flex items-center gap-2 mb-4">
                     <span className="font-bold text-xl text-green-600">{selectedMeal.price} EGP</span>
                   </div>
                   {selectedMeal.category && (
                     <div className="mb-4">
-                      <span className="text-gray-600">Category: </span>
-                      <span className="font-semibold">{selectedMeal.category.name}</span>
+                      <span className="text-gray-600">
+                        {language === 'ar' ? 'التصنيف: ' : 'Category: '}
+                      </span>
+                      <span className="font-semibold">
+                        {language === 'ar' ? selectedMeal.category.name?.ar : selectedMeal.category.name?.en}
+                      </span>
+                    </div>
+                  )}
+                  {selectedMeal.preparationTime && (
+                    <div className="flex items-center gap-2 text-gray-600 mb-4">
+                      <Clock className="w-4 h-4" />
+                      <span>
+                        {language === 'ar' 
+                          ? `وقت التحضير: ${selectedMeal.preparationTime} دقيقة`
+                          : `Preparation Time: ${selectedMeal.preparationTime} minutes`
+                        }
+                      </span>
                     </div>
                   )}
                   {selectedMeal.reviews.length > 0 && (
                     <div className="mt-6">
-                      <h3 className="text-xl font-semibold mb-4">Reviews</h3>
+                      <h3 className="text-xl font-semibold mb-4">
+                        {language === 'ar' ? 'التقييمات' : 'Reviews'}
+                      </h3>
                       <div className="space-y-4">
                         {selectedMeal.reviews.map((review) => (
                           <div key={review._id} className="border-b pb-4">

@@ -1,3 +1,7 @@
+export interface Translation {
+  en: string;
+  ar: string;
+}
 
 export interface Review {
   _id: string;
@@ -6,9 +10,16 @@ export interface Review {
   rating: number;
 }
 
+export interface Category {
+  _id: string;
+  name: Translation;
+  image: string;
+  description?: Translation;
+}
+
 export interface Meal {
-  name: string;
-  description: string;
+  name: Translation;
+  description: Translation;
   price: string;
   category: string;
   image: string | null;

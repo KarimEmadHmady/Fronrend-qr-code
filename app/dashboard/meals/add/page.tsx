@@ -7,37 +7,46 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Image from "next/image";
 
+interface Translation {
+  en: string;
+  ar: string;
+}
+
 interface Category {
   _id: string;
-  name: string;
+  name: Translation;
   image: string;
-  description?: string;
+  description?: Translation;
+}
+
+interface MealState {
+  name: Translation;
+  description: Translation;
+  price: string;
+  image: File | null;
+  imagePreview: string;
+  categoryId: string;
+}
+
+interface CategoryState {
+  name: Translation;
+  description: Translation;
+  image: File | null;
+  imagePreview: string;
 }
 
 const AddMealPage = () => {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [newCategory, setNewCategory] = useState<{
-    name: string;
-    description: string;
-    image: File | null;
-    imagePreview: string;
-  }>({
-    name: "",
-    description: "",
+  const [newCategory, setNewCategory] = useState<CategoryState>({
+    name: { en: "", ar: "" },
+    description: { en: "", ar: "" },
     image: null,
     imagePreview: "",
   });
 
-  const [meal, setMeal] = useState<{
-    name: string;
-    description: string;
-    price: string;
-    image: File | null;
-    imagePreview: string;
-    categoryId: string;
-  }>({
-    name: "",
-    description: "",
+  const [meal, setMeal] = useState<MealState>({
+    name: { en: "", ar: "" },
+    description: { en: "", ar: "" },
     price: "",
     image: null,
     imagePreview: "",
@@ -54,10 +63,26 @@ const AddMealPage = () => {
   const fetchCategories = async () => {
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/categories`);
-      setCategories(response.data);
+      // Validate and transform the response data
+      const validCategories = response.data
+        .filter((category: any) => category && category._id && category.name)
+        .map((category: any) => ({
+          _id: category._id,
+          name: {
+            ar: category.name?.ar || '',
+            en: category.name?.en || ''
+          },
+          image: category.image || '',
+          description: category.description ? {
+            ar: category.description?.ar || '',
+            en: category.description?.en || ''
+          } : undefined
+        }));
+      setCategories(validCategories);
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error('Failed to load categories');
+      setCategories([]); // Set empty array on error
     }
   };
 
@@ -65,14 +90,34 @@ const AddMealPage = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setMeal({ ...meal, [name]: value });
+    if (name === "price" || name === "categoryId") {
+      setMeal((prevMeal) => ({ ...prevMeal, [name]: value }));
+    } else {
+      // Handle translation fields
+      const [field, lang] = name.split("_");
+      setMeal((prevMeal) => ({
+        ...prevMeal,
+        [field]: {
+          ...prevMeal[field as keyof Pick<MealState, "name" | "description">],
+          [lang]: value
+        }
+      }));
+    }
   };
 
   const handleCategoryChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setNewCategory({ ...newCategory, [name]: value });
+    // Handle translation fields
+    const [field, lang] = name.split("_");
+    setNewCategory((prevCategory) => ({
+      ...prevCategory,
+      [field]: {
+        ...prevCategory[field as keyof Pick<CategoryState, "name" | "description">],
+        [lang]: value
+      }
+    }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -97,14 +142,16 @@ const AddMealPage = () => {
 
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCategory.name || !newCategory.image) {
-      toast.error("Please provide both category name and image");
+    if (!newCategory.name.en || !newCategory.name.ar || !newCategory.image) {
+      toast.error("Please provide category name in both English and Arabic, and an image");
       return;
     }
 
     const formData = new FormData();
-    formData.append("name", newCategory.name);
-    formData.append("description", newCategory.description);
+    formData.append("name[en]", newCategory.name.en);
+    formData.append("name[ar]", newCategory.name.ar);
+    formData.append("description[en]", newCategory.description.en);
+    formData.append("description[ar]", newCategory.description.ar);
     formData.append("image", newCategory.image);
 
     const token = localStorage.getItem("token");
@@ -119,7 +166,12 @@ const AddMealPage = () => {
       });
       
       toast.success("Category added successfully!");
-      setNewCategory({ name: "", description: "", image: null, imagePreview: "" });
+      setNewCategory({
+        name: { en: "", ar: "" },
+        description: { en: "", ar: "" },
+        image: null,
+        imagePreview: ""
+      });
       fetchCategories(); // Refresh categories list
     } catch (error) {
       console.error('Error adding category:', error);
@@ -134,9 +186,16 @@ const AddMealPage = () => {
       return;
     }
 
+    if (!meal.name.en || !meal.name.ar || !meal.description.en || !meal.description.ar) {
+      toast.error("Please provide meal name and description in both English and Arabic");
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("name", meal.name);
-    formData.append("description", meal.description);
+    formData.append("name[en]", meal.name.en);
+    formData.append("name[ar]", meal.name.ar);
+    formData.append("description[en]", meal.description.en);
+    formData.append("description[ar]", meal.description.ar);
     formData.append("price", meal.price);
     if (meal.image) formData.append("image", meal.image);
     formData.append("categoryId", meal.categoryId);
@@ -179,52 +238,94 @@ const AddMealPage = () => {
           Add New Meal
         </h2>
 
-        <input
-          type="text"
-          name="name"
-          value={meal.name}
-          onChange={handleMealChange}
-          placeholder="Meal Name"
-          required
-          className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name (English)</label>
+          <input
+            type="text"
+            name="name_en"
+            value={meal.name.en}
+            onChange={handleMealChange}
+            placeholder="Meal Name in English"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
-        <input
-          type="text"
-          name="description"
-          value={meal.description}
-          onChange={handleMealChange}
-          placeholder="Meal Description"
-          required
-          className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name (Arabic)</label>
+          <input
+            type="text"
+            name="name_ar"
+            value={meal.name.ar}
+            onChange={handleMealChange}
+            placeholder="اسم الوجبة بالعربية"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+          />
+        </div>
 
-        <input
-          type="number"
-          name="price"
-          value={meal.price}
-          onChange={handleMealChange}
-          placeholder="Meal Price"
-          required
-          className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description (English)</label>
+          <input
+            type="text"
+            name="description_en"
+            value={meal.description.en}
+            onChange={handleMealChange}
+            placeholder="Meal Description in English"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
-        <select
-          name="categoryId"
-          value={meal.categoryId}
-          onChange={handleMealChange}
-          required
-          className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Select Category</option>
-          {categories.map((category) => (
-            <option key={category._id} value={category._id}>
-              {category.name}
-            </option>
-          ))}
-        </select>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description (Arabic)</label>
+          <input
+            type="text"
+            name="description_ar"
+            value={meal.description.ar}
+            onChange={handleMealChange}
+            placeholder="وصف الوجبة بالعربية"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+          />
+        </div>
 
-        <div className="mb-6">
+        <div className="mb-4">
+          <input
+            type="number"
+            name="price"
+            value={meal.price}
+            onChange={handleMealChange}
+            placeholder="Price"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="mb-4">
+          <select
+            name="categoryId"
+            value={meal.categoryId}
+            onChange={handleMealChange}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select Category</option>
+            {categories && categories.length > 0 ? (
+              categories.map((category) => (
+                category && category.name ? (
+                  <option key={category._id} value={category._id}>
+                    {category.name?.ar || 'Untitled'} - {category.name?.en || 'Untitled'}
+                  </option>
+                ) : null
+              ))
+            ) : (
+              <option value="" disabled>No categories available</option>
+            )}
+          </select>
+        </div>
+
+        <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Meal Image
           </label>
@@ -234,15 +335,16 @@ const AddMealPage = () => {
             onChange={handleFileChange}
             accept="image/*"
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full"
           />
           {meal.imagePreview && (
-            <div className="mt-2 relative w-full h-48">
+            <div className="mt-2">
               <Image
                 src={meal.imagePreview}
-                alt="Meal preview"
-                fill
-                className="rounded-lg object-cover"
+                alt="Preview"
+                width={100}
+                height={100}
+                className="rounded-lg"
               />
             </div>
           )}
@@ -251,45 +353,72 @@ const AddMealPage = () => {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-2 rounded-lg text-white font-semibold transition cursor-pointer ${
-            loading
-              ? "bg-blue-300 cursor-not-allowed"
-              : "bg-[#222] hover:bg-[#333]"
+          className={`w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+            loading ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
-          {loading ? "Adding Meal..." : "Add Meal"}
+          {loading ? "Adding..." : "Add Meal"}
         </button>
       </form>
 
       {/* Category Form */}
       <form
         onSubmit={handleAddCategory}
-        className="bg-white p-8 sm:p-10 rounded-2xl shadow-lg w-full max-w-md transition-all z-10"
+        className="bg-white p-8 sm:p-10 rounded-2xl shadow-lg w-full max-w-md transition-all z-10 mt-8"
       >
         <h2 className="text-3xl font-extrabold text-center text-gray-800 mb-6">
           Add New Category
         </h2>
 
-        <input
-          type="text"
-          name="name"
-          value={newCategory.name}
-          onChange={handleCategoryChange}
-          placeholder="Category Name"
-          required
-          className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name (English)</label>
+          <input
+            type="text"
+            name="name_en"
+            value={newCategory.name.en}
+            onChange={handleCategoryChange}
+            placeholder="Category Name in English"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
-        <textarea
-          name="description"
-          value={newCategory.description}
-          onChange={handleCategoryChange}
-          placeholder="Category Description (Optional)"
-          className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          rows={3}
-        />
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Name (Arabic)</label>
+          <input
+            type="text"
+            name="name_ar"
+            value={newCategory.name.ar}
+            onChange={handleCategoryChange}
+            placeholder="اسم الفئة بالعربية"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+          />
+        </div>
 
-        <div className="mb-6">
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description (English)</label>
+          <textarea
+            name="description_en"
+            value={newCategory.description.en}
+            onChange={handleCategoryChange}
+            placeholder="Category Description in English"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description (Arabic)</label>
+          <textarea
+            name="description_ar"
+            value={newCategory.description.ar}
+            onChange={handleCategoryChange}
+            placeholder="وصف الفئة بالعربية"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+          />
+        </div>
+
+        <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Category Image
           </label>
@@ -299,15 +428,16 @@ const AddMealPage = () => {
             onChange={handleFileChange}
             accept="image/*"
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full"
           />
           {newCategory.imagePreview && (
-            <div className="mt-2 relative w-full h-32">
+            <div className="mt-2">
               <Image
                 src={newCategory.imagePreview}
-                alt="Category preview"
-                fill
-                className="rounded-lg object-cover"
+                alt="Preview"
+                width={100}
+                height={100}
+                className="rounded-lg"
               />
             </div>
           )}
@@ -315,7 +445,7 @@ const AddMealPage = () => {
 
         <button
           type="submit"
-          className="w-full py-2 rounded-lg text-white font-semibold transition cursor-pointer bg-green-600 hover:bg-green-700"
+          className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
         >
           Add Category
         </button>
