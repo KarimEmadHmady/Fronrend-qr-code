@@ -5,7 +5,7 @@ import { toast } from "react-toastify"
 import "react-toastify/dist/ReactToastify.css"
 
 import { useParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import Image from "next/image"
 import AnimatedBackground from "@/components/AnimatedBackground"
@@ -42,7 +42,7 @@ const MealDetailsPage = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
-  const fetchMeal = async (): Promise<void> => {
+  const fetchMeal = useCallback(async (): Promise<void> => {
     try {
       setLoading(true)
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/meals/${mealId}`)
@@ -53,11 +53,11 @@ const MealDetailsPage = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [mealId])
 
   useEffect(() => {
     fetchMeal()
-  }, [mealId]) 
+  }, [fetchMeal])
 
   const handleReviewSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()

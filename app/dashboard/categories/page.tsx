@@ -14,6 +14,13 @@ interface Category {
   description?: string;
 }
 
+// Add proper error type
+interface ApiError {
+  message: string;
+  status?: number;
+  code?: string;
+}
+
 const CategoriesPage = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,29 +146,21 @@ const CategoriesPage = () => {
   };
 
   // Delete category
-  const handleDeleteCategory = async (categoryId: string) => {
-    if (!window.confirm("Are you sure you want to delete this category?")) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      await axios.delete(
-        `${process.env.NEXT_PUBLIC_API_URL}/categories/${categoryId}`,
-        {
+  const handleDeleteCategory = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this category?")) {
+      try {
+        const token = localStorage.getItem("token");
+        await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/categories/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
-      );
-      toast.success("Category deleted successfully");
-      fetchCategories();
-    } catch (error: any) {
-      console.error("Error deleting category:", error);
-      if (error.response?.data?.message) {
-        toast.error(error.response.data.message);
-      } else {
-        toast.error("Failed to delete category");
+        });
+        setCategories(categories.filter((category) => category._id !== id));
+        toast.success("Category deleted successfully");
+      } catch (error) {
+        const apiError = error as ApiError;
+        console.error("Error deleting category:", error);
+        toast.error(apiError.message || "Failed to delete category");
       }
     }
   };
