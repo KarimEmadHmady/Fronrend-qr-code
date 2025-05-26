@@ -36,6 +36,41 @@ interface Meal {
   reviews: Review[];
 }
 
+interface ApiResponse {
+  _id: string;
+  name: {
+    en: string;
+    ar: string;
+  };
+  description: {
+    en: string;
+    ar: string;
+  };
+  price: string;
+  image: string;
+  category: {
+    _id: string;
+    name: {
+      en: string;
+      ar: string;
+    };
+  };
+  reviews: Review[];
+}
+
+interface CategoryResponse {
+  _id: string;
+  name: {
+    en: string;
+    ar: string;
+  };
+  image: string;
+  description?: {
+    en: string;
+    ar: string;
+  };
+}
+
 const EditMealPage = () => {
   const { id } = useParams<{ id: string }>() || { id: "" };
   const [categories, setCategories] = useState<Category[]>([]);
@@ -52,14 +87,20 @@ const EditMealPage = () => {
         setError(null);
 
         // Fetch meal data
-        const mealResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/meals/${id}`);
+        const mealResponse = await axios.get<ApiResponse>(`${process.env.NEXT_PUBLIC_API_URL}/meals/${id}`);
         const mealData = mealResponse.data;
         
         // Transform meal data with proper validation
         setMeal({
           _id: mealData._id,
-          name: mealData.name || { en: '', ar: '' },
-          description: mealData.description || { en: '', ar: '' },
+          name: {
+            en: mealData.name?.en || '',
+            ar: mealData.name?.ar || ''
+          },
+          description: {
+            en: mealData.description?.en || '',
+            ar: mealData.description?.ar || ''
+          },
           price: mealData.price?.toString() || '',
           category: mealData.category?._id || '',
           image: mealData.image || null,
@@ -67,16 +108,20 @@ const EditMealPage = () => {
         });
 
         // Fetch categories
-        const categoriesResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/categories`);
-        const validCategories = categoriesResponse.data
-          .filter((cat: any) => cat && cat._id && cat.name)
-          .map((cat: any) => ({
-            _id: cat._id,
-            name: cat.name || { en: '', ar: '' },
-            image: cat.image || '',
-            description: cat.description
-          }));
-        setCategories(validCategories);
+        const categoriesResponse = await axios.get<CategoryResponse[]>(`${process.env.NEXT_PUBLIC_API_URL}/categories`);
+        const transformedCategories = categoriesResponse.data.map((category: CategoryResponse) => ({
+          _id: category._id,
+          name: {
+            en: category.name?.en || '',
+            ar: category.name?.ar || ''
+          },
+          image: category.image || '',
+          description: category.description ? {
+            en: category.description.en || '',
+            ar: category.description.ar || ''
+          } : undefined
+        }));
+        setCategories(transformedCategories);
       } catch (error) {
         console.error("Error fetching data:", error);
         setError("Failed to load meal data. Please try again.");

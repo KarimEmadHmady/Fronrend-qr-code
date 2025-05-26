@@ -29,11 +29,45 @@ interface Review {
 
 interface Meal {
   _id: string;
-  name: Translation;
-  description: Translation;
+  name: {
+    en: string;
+    ar: string;
+  };
+  description: {
+    en: string;
+    ar: string;
+  };
   price: number;
   image: string;
-  category: Category | null;
+  category: {
+    _id: string;
+    name: {
+      en: string;
+      ar: string;
+    };
+  };
+  reviews: Review[];
+}
+
+interface ApiResponse {
+  _id: string;
+  name: {
+    en: string;
+    ar: string;
+  };
+  description: {
+    en: string;
+    ar: string;
+  };
+  price: number;
+  image: string;
+  category: {
+    _id: string;
+    name: {
+      en: string;
+      ar: string;
+    };
+  };
   reviews: Review[];
 }
 
@@ -48,29 +82,39 @@ const MealsPage = () => {
   useEffect(() => {
     const fetchMeals = async () => {
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/meals`);
-        const mealsData = response.data.map((meal: any) => ({
+        setLoading(true);
+        const response = await axios.get<ApiResponse[]>(`${process.env.NEXT_PUBLIC_API_URL}/meals`);
+        
+        // Transform the data with proper typing
+        const transformedMeals: Meal[] = response.data.map((meal: ApiResponse) => ({
           _id: meal._id,
-          name: meal.name || { en: '', ar: '' },
-          description: meal.description || { en: '', ar: '' },
+          name: {
+            en: meal.name?.en || '',
+            ar: meal.name?.ar || ''
+          },
+          description: {
+            en: meal.description?.en || '',
+            ar: meal.description?.ar || ''
+          },
           price: meal.price || 0,
-          image: meal.image || '/placeholder.svg',
-          category: meal.category ? {
-            _id: meal.category._id,
-            name: meal.category.name || { en: '', ar: '' },
-            image: meal.category.image || '',
-            description: meal.category.description
-          } : null,
+          image: meal.image || '',
+          category: {
+            _id: meal.category?._id || '',
+            name: {
+              en: meal.category?.name?.en || '',
+              ar: meal.category?.name?.ar || ''
+            }
+          },
           reviews: meal.reviews || []
         }));
 
-        setMeals(mealsData);
+        setMeals(transformedMeals);
 
         // Extract unique categories
         const uniqueCategories = ["All"];
         const categorySet = new Set<string>();
         
-        mealsData.forEach((meal: Meal) => {
+        transformedMeals.forEach((meal: Meal) => {
           if (meal.category?.name?.ar) {
             categorySet.add(meal.category.name.ar);
           }

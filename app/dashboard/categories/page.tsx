@@ -6,13 +6,38 @@ import { toast } from "react-toastify";
 import Image from "next/image";
 import { Pencil, Trash2, Plus } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
-import { Category, Translation } from "@/types";
 
 // Add proper error type
 interface ApiError {
   message: string;
   status?: number;
   code?: string;
+}
+
+interface Category {
+  _id: string;
+  name: {
+    en: string;
+    ar: string;
+  };
+  image: string;
+  description?: {
+    en: string;
+    ar: string;
+  };
+}
+
+interface ApiResponse {
+  _id: string;
+  name: {
+    en: string;
+    ar: string;
+  };
+  image: string;
+  description?: {
+    en: string;
+    ar: string;
+  };
 }
 
 const CategoriesPage = () => {
@@ -34,23 +59,23 @@ const CategoriesPage = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/categories`);
-      // Validate and transform the response data
-      const validCategories = response.data
-        .filter((category: any) => category && category._id && category.name)
-        .map((category: any) => ({
-          _id: category._id,
-          name: {
-            ar: category.name?.ar || '',
-            en: category.name?.en || ''
-          },
-          image: category.image || '/placeholder.svg',
-          description: category.description ? {
-            ar: category.description?.ar || '',
-            en: category.description?.en || ''
-          } : undefined
-        }));
-      setCategories(validCategories);
+      const response = await axios.get<ApiResponse[]>(`${process.env.NEXT_PUBLIC_API_URL}/categories`);
+      
+      // Transform the data with proper typing
+      const transformedCategories: Category[] = response.data.map((category: ApiResponse) => ({
+        _id: category._id,
+        name: {
+          en: category.name?.en || '',
+          ar: category.name?.ar || ''
+        },
+        image: category.image || '',
+        description: category.description ? {
+          en: category.description.en || '',
+          ar: category.description.ar || ''
+        } : undefined
+      }));
+
+      setCategories(transformedCategories);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching categories:", error);
