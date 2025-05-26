@@ -46,6 +46,7 @@ interface Category {
     en: string;
     ar: string;
   };
+  mealCount?: number;
 }
 
 interface ApiResponse {
@@ -59,6 +60,7 @@ interface ApiResponse {
     en: string;
     ar: string;
   };
+  mealCount?: number;
 }
 
 interface NewCategory {
@@ -95,7 +97,19 @@ const CategoriesPage = () => {
     try {
       const response = await axios.get<ApiResponse[]>(`${process.env.NEXT_PUBLIC_API_URL}/categories`);
       
-      // Transform the data with proper typing
+      // Get meal counts for each category
+      const mealsResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/meals`);
+      const meals = mealsResponse.data;
+      
+      // Calculate meal counts for each category
+      const mealCounts: { [key: string]: number } = {};
+      meals.forEach((meal: any) => {
+        if (meal.category) {
+          mealCounts[meal.category._id] = (mealCounts[meal.category._id] || 0) + 1;
+        }
+      });
+      
+      // Transform the data with proper typing and include meal counts
       const transformedCategories: Category[] = response.data.map((category: ApiResponse) => ({
         _id: category._id,
         name: {
@@ -106,7 +120,8 @@ const CategoriesPage = () => {
         description: category.description ? {
           en: category.description.en || '',
           ar: category.description.ar || ''
-        } : undefined
+        } : undefined,
+        mealCount: mealCounts[category._id] || 0
       }));
 
       setCategories(transformedCategories);
@@ -296,8 +311,14 @@ const CategoriesPage = () => {
                   />
                 </div>
                 <div className="p-4">
-                  <h3 className="text-xl font-semibold mb-1">{category.name?.ar || 'Untitled'}</h3>
-                  <h4 className="text-sm text-gray-600 mb-2">{category.name?.en || 'Untitled'}</h4>
+                  <h3 className="text-xl font-semibold mb-1">
+                    {category.name?.ar || 'Untitled'} 
+                    <span className="text-sm text-gray-500 mr-2">({category.mealCount} وجبة)</span>
+                  </h3>
+                  <h4 className="text-sm text-gray-600 mb-2">
+                    {category.name?.en || 'Untitled'} 
+                    <span className="text-sm text-gray-500 ml-2">({category.mealCount} meals)</span>
+                  </h4>
                   {category.description && (
                     <>
                       <p className="text-gray-600 text-sm mb-1">{category.description.ar || ''}</p>
