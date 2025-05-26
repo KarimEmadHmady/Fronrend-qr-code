@@ -8,8 +8,16 @@ import { Meal, Review } from "@/types"; // Ensure these types are defined in "@/
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+interface Category {
+  _id: string;
+  name: string;
+  image: string;
+  description?: string;
+}
+
 const EditMealPage = () => {
   const { id } = useParams<{ id: string }>() || { id: "" }; // Handle potential null value
+  const [categories, setCategories] = useState<Category[]>([]);
   const [meal, setMeal] = useState<Meal>({
     name: "",
     description: "",
@@ -22,18 +30,26 @@ const EditMealPage = () => {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchMeal = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get<Meal>(
+        // Fetch meal data
+        const mealResponse = await axios.get<Meal>(
           `${process.env.NEXT_PUBLIC_API_URL}/meals/${id}`
         );
-        setMeal(response.data);
+        setMeal(mealResponse.data);
+
+        // Fetch categories
+        const categoriesResponse = await axios.get<Category[]>(
+          `${process.env.NEXT_PUBLIC_API_URL}/categories`
+        );
+        setCategories(categoriesResponse.data);
       } catch (error) {
-        console.error("Error fetching meal:", error);
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load data");
       }
     };
 
-    fetchMeal();
+    fetchData();
   }, [id]);
 
   const handleChange = (
@@ -75,10 +91,12 @@ const EditMealPage = () => {
         }
       );
       setLoading(false);
+      toast.success("Meal updated successfully");
       router.push("/dashboard/meals");
     } catch (error) {
       setLoading(false);
       console.error("Error updating meal:", error);
+      toast.error("Failed to update meal");
     }
   };
 
@@ -115,13 +133,19 @@ const EditMealPage = () => {
               : rev
           ),
         }));
+        toast.success("Review updated successfully");
       } catch (error) {
         console.error("Error updating review:", error);
+        toast.error("Failed to update review");
       }
     }
   };
 
   const handleDeleteReview = async (reviewId: string) => {
+    if (!window.confirm("Are you sure you want to delete this review?")) {
+      return;
+    }
+    
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -139,8 +163,10 @@ const EditMealPage = () => {
         ...prev,
         reviews: prev.reviews.filter((rev) => rev._id !== reviewId),
       }));
+      toast.success("Review deleted successfully");
     } catch (error) {
       console.error("Error deleting review:", error);
+      toast.error("Failed to delete review");
     }
   };
 
@@ -202,12 +228,14 @@ const EditMealPage = () => {
           value={meal.category}
           onChange={handleChange}
           className="w-full mb-4 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
         >
-          <option value="">Select Category</option>
-          <option value="Appetizer">Appetizer</option>
-          <option value="Main Course">Main Course</option>
-          <option value="Dessert">Dessert</option>
-          <option value="Beverage">Beverage</option>
+          <option value="">اختر الفئة</option>
+          {categories.map((category) => (
+            <option key={category._id} value={category._id}>
+              {category.name}
+            </option>
+          ))}
         </select>
 
         <input
@@ -225,12 +253,12 @@ const EditMealPage = () => {
               : "bg-[#222] hover:bg-[#333]"
           }`}
         >
-          {loading ? "Submitting..." : "Update Meal"}
+          {loading ? "جاري التحديث..." : "تحديث الوجبة"}
         </button>
       </form>
 
       <div className="mt-10 w-full max-w-3xl mx-auto">
-        <h3 className="text-xl font-semibold mb-4">Reviews</h3>
+        <h3 className="text-xl font-semibold mb-4">التقييمات</h3>
         {meal.reviews.length > 0 ? (
           <div className="space-y-4">
             {meal.reviews.map((review: Review) => (
@@ -240,28 +268,28 @@ const EditMealPage = () => {
               >
                 <div className="flex items-center space-x-3">
                   <p className="font-semibold">{review.name}</p>
-                  <span className="text-gray-500">Rating: {review.rating}</span>
+                  <span className="text-gray-500">التقييم: {review.rating}</span>
                 </div>
-                <p className="text-gray-700"> comment: {review.comment}</p>
+                <p className="text-gray-700">التعليق: {review.comment}</p>
                 <div className="flex space-x-4 mt-3">
                   <button
                     onClick={() => handleEditReview(review._id)}
                     className="text-blue-600 hover:underline bg-[#eee] p-[5px] rounded cursor-pointer"
                   >
-                    Edit
+                    تعديل
                   </button>
                   <button
                     onClick={() => handleDeleteReview(review._id)}
                     className="text-red-600 hover:underline bg-[#eee] p-[5px] rounded cursor-pointer"
                   >
-                    Delete
+                    حذف
                   </button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-gray-600">No reviews yet.</p>
+          <p className="text-gray-600">لا توجد تقييمات حتى الآن.</p>
         )}
       </div>
     </div>

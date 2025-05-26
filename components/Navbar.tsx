@@ -9,6 +9,7 @@ import {
   FaSignInAlt,
   FaUserPlus,
   FaPlus,
+  FaTags,
 } from "react-icons/fa";
 import Image from "next/image";
 import { FiLogOut } from "react-icons/fi";
@@ -47,6 +48,12 @@ export default function Navbar() {
                   className="text-gray-600 hover:text-gray-800 text-[15px] sm:text-[20px]"
                 >
                   <FaUserShield title="Dashboard" />
+                </Link>
+                <Link
+                  href="/dashboard/categories"
+                  className="text-gray-600 hover:text-gray-800 text-[15px] sm:text-[20px]"
+                >
+                  <FaTags title="Categories Management" />
                 </Link>
                 <Link
                   href="/dashboard/meals"

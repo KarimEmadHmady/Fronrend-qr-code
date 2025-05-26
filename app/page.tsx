@@ -19,12 +19,24 @@ interface Meal {
   _id: string;
   name: string;
   description: string;
-  category: string;
+  category: {
+    _id: string;
+    name: string;
+    image: string;
+    description?: string;
+  };
   price: number;
   image: string;
   preparationTime?: number;
   isNew?: boolean;
   reviews?: Review[];
+}
+
+interface Category {
+  _id: string;
+  name: string;
+  image: string;
+  description?: string;
 }
 
 const HomePage: React.FC = () => {
@@ -38,6 +50,7 @@ const HomePage: React.FC = () => {
   const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
   const [hoverRating, setHoverRating] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Add custom styles for hiding scrollbar
   const scrollableStyle = {
@@ -49,30 +62,37 @@ const HomePage: React.FC = () => {
   } as React.CSSProperties;
 
   useEffect(() => {
-    const fetchMeals = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get<Meal[]>(
+        // Fetch meals
+        const mealsResponse = await axios.get<Meal[]>(
           `${process.env.NEXT_PUBLIC_API_URL}/meals`
         );
-        setMeals(response.data);
+        setMeals(mealsResponse.data);
+
+        // Fetch categories
+        const categoriesResponse = await axios.get<Category[]>(
+          `${process.env.NEXT_PUBLIC_API_URL}/categories`
+        );
+        setCategories(categoriesResponse.data);
         setLoading(false);
       } catch (error) {
-        console.error("Error fetching meals:", error);
+        console.error("Error fetching data:", error);
         setLoading(false);
       }
     };
 
-    fetchMeals();
+    fetchData();
   }, []);
 
-  const categories = ["All", ...new Set(meals.map((meal) => meal.category))];
+  const categoryNames = ["All", ...new Set(meals.map((meal) => meal.category?.name || "Uncategorized"))];
 
   const filteredMeals = meals.filter((meal) => {
     const matchesSearch =
       meal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       meal.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory =
-      activeCategory === "All" || meal.category === activeCategory;
+      activeCategory === "All" || meal.category?.name === activeCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -116,12 +136,12 @@ const HomePage: React.FC = () => {
     <div className="min-h-screen bg-[#eee] rtl">
       <AnimatedBackground />
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-primary/90 to-primary text-[#222] py-4 px-3 bg-[#eee]">
-        <div className="container mx-auto max-w-6xl">
+      <div className="bg-gradient-to-r from-primary/90 to-primary text-[#222] py-4 px-3 bg-[#eee] ">
+        <div className="container mx-auto max-w-6xl ">
           <Image
             src="/banner.webp"
             alt="Banner"
-            className="w-full h-[200px] sm:h-[300px] md:h-[400px] lg:h-[300px] lg:w-[500px] object-cover  object-[25%_28%]  block mx-auto mb-6 transition-transform duration-500 group-hover:scale-105 z-50 rounded-[15px]"
+            className="w-full h-[200px] sm:h-[300px] md:h-[400px] lg:h-[300px] lg:w-[500px] object-cover  object-[25%_28%]  block mx-auto mb-6 transition-transform duration-500 group-hover:scale-105  rounded-[15px]"
             width={500}
             height={400}
           />
@@ -160,20 +180,20 @@ const HomePage: React.FC = () => {
             {/* Scrollable Categories */}
             <div className="overflow-x-auto flex-1" style={scrollableStyle}>
               <div className="flex gap-[4px] min-w-max">
-                {categories.map((category) => (
+                {categoryNames.map((categoryName) => (
                   <button
-                    key={category}
+                    key={categoryName}
                     onClick={() => {
-                      setActiveCategory(category);
+                      setActiveCategory(categoryName);
                       setIsSidebarOpen(false);
                     }}
                     className={`px-4 py-2 rounded-[8px] text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
-                      activeCategory === category
+                      activeCategory === categoryName
                         ? "bg-white text-[#222] hover:bg-gray-200"
                         : "bg-gray-100 text-gray-700"
                     }`}
                   >
-                    {category}
+                    {categoryName}
                   </button>
                 ))}
               </div>
@@ -195,22 +215,43 @@ const HomePage: React.FC = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-100px)]">
+              <button
+                onClick={() => {
+                  setActiveCategory("All");
+                  setIsSidebarOpen(false);
+                }}
+                className={`w-full text-center p-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                  activeCategory === "All"
+                    ? "bg-[#222] text-[#eee]"
+                    : "hover:bg-gray-100"
+                }`}
+              >
+                عرض الكل
+              </button>
               {categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => {
-                    setActiveCategory(category);
-                    setIsSidebarOpen(false);
-                  }}
-                  className={`w-full text-center px-4 py-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                    activeCategory === category
+                <div
+                  key={category._id}
+                  className={`w-full flex flex-col items-center p-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                    activeCategory === category.name
                       ? "bg-[#222] text-[#eee]"
                       : "hover:bg-gray-100"
                   }`}
+                  onClick={() => {
+                    setActiveCategory(category.name);
+                    setIsSidebarOpen(false);
+                  }}
                 >
-                  {category}
-                </button>
+                  <div className="relative w-16 h-16 mb-2 overflow-hidden rounded-full">
+                    <Image
+                      src={category.image}
+                      alt={category.name}
+                      className="object-cover"
+                      fill
+                    />
+                  </div>
+                  <span>{category.name}</span>
+                </div>
               ))}
             </div>
           </div>
@@ -240,100 +281,177 @@ const HomePage: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-8">
-              {categories
-                .filter((cat) => cat !== "All")
-                .map((category) => {
+              {activeCategory === "All" ? (
+                // Show all categories
+                categories.map((category) => {
                   const categoryMeals = filteredMeals.filter(
-                    (meal) => meal.category === category
+                    (meal) => meal.category?._id === category._id
                   );
 
-                if (categoryMeals.length === 0) return null;
+                  if (categoryMeals.length === 0) return null;
 
-                return (
-                  <div key={category} className="space-y-4">
-                    <div className="flex items-center space-x-4 mb-4">
-                      <h2 className="text-l font-bold text-gray-800  pr-4">
-                        {category} 
-                      </h2>
-                      <div className="h-[1px] flex-grow bg-gray-200"></div>
-                    </div>
-                    <div className="grid grid-cols-1 gap-4">
-                      {categoryMeals.map((meal) => (
-                        <div
-                          key={meal._id}
-                          onClick={() => setSelectedMeal(meal)}
-                          className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
-                        >
-                          <div className="flex flex-row h-26">
-                            <div className="w-1/3 relative overflow-hidden h-full">
-                              <Image
-                                src={meal.image || "/placeholder.svg"}
-                                alt={meal.name}
-                                className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-500 p-[12px] rounded-[15px]"
-                                width={200}
-                                height={200}
-                              />
-                              {meal.isNew && (
-                                <div className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                                  جديد
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="w-2/3 p-3 flex flex-col justify-between">
-                              <div>
-                                <div className="text-right mb-1">
-                                  <h2 className="text-[12px] font-bold text-gray-800 mr-2">
-                                    {meal.name}
-                                  </h2>
-                                </div>
-                                <p className="text-gray-600 text-xs line-clamp-2 mb-1 text-right">
-                                  {meal.description}
-                                </p>
-
-                                {meal.preparationTime && (
-                                  <div className="flex items-center justify-end text-gray-500 text-xs mb-1">
-                                    <span>{meal.preparationTime} دقيقة</span>
-                                    <Clock className="w-3 h-3 mr-1" />
+                  return (
+                    <div key={category._id} className="space-y-4">
+                      <div className="flex items-center space-x-4 mb-4">
+                        <h2 className="text-l font-bold text-gray-800 pr-4">
+                          {category.name}
+                        </h2>
+                        <div className="h-[1px] flex-grow bg-gray-200"></div>
+                      </div>
+                      <div className="grid grid-cols-1 gap-4">
+                        {categoryMeals.map((meal) => (
+                          <div
+                            key={meal._id}
+                            onClick={() => setSelectedMeal(meal)}
+                            className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                          >
+                            <div className="flex">
+                              <div className="w-1/3 relative overflow-hidden h-full">
+                                <Image
+                                  src={meal.image || "/placeholder.svg"}
+                                  alt={meal.name}
+                                  className="h-[110px] w-[110px] object-cover object-center group-hover:scale-105 transition-transform duration-500 p-[12px] rounded-[15px]"
+                                  width={200}
+                                  height={200}
+                                />
+                                {meal.isNew && (
+                                  <div className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                    جديد
                                   </div>
                                 )}
                               </div>
 
-                              <div className="flex justify-between items-end mt-2">
-                                <div className="text-[12px] font-bold text-primary">
-                                  {meal.price} EGP
+                              <div className="w-2/3 p-3 flex flex-col justify-between">
+                                <div>
+                                  <div className="text-right mb-1">
+                                    <h2 className="text-[12px] font-bold text-gray-800 mr-2">
+                                      {meal.name}
+                                    </h2>
+                                  </div>
+                                  <p className="text-gray-600 text-xs line-clamp-2 mb-[7px] text-right">
+                                    {meal.description}
+                                  </p>
+
+                                  {meal.preparationTime && (
+                                    <div className="flex items-center justify-end text-gray-500 text-xs mb-1">
+                                      <span>{meal.preparationTime} دقيقة</span>
+                                      <Clock className="w-3 h-3 mr-1" />
+                                    </div>
+                                  )}
                                 </div>
 
-                                <div className="text-right">
-                                  <div className="flex items-center justify-end gap-0.5 mb-0.5">
-                                    {meal.reviews && meal.reviews.length > 0 ? (
-                                      <>
-                                        {renderStars(
-                                          meal.reviews.reduce(
-                                            (sum, review) => sum + review.rating,
-                                            0
-                                          ) / meal.reviews.length
-                                        )}
-                                        <span className="text-[10px] text-gray-500 mr-1">
-                                          ({meal.reviews.length})
+                                <div className="flex justify-end gap-8 items-end">
+                                  <div className="text-[12px] font-bold text-primary">
+                                    {meal.price} EGP
+                                  </div>
+
+                                  <div className="text-right">
+                                    <div className="flex items-center justify-end gap-0.5 mb-0.5">
+                                      {meal.reviews && meal.reviews.length > 0 ? (
+                                        <>
+                                          {renderStars(
+                                            meal.reviews.reduce(
+                                              (sum, review) => sum + review.rating,
+                                              0
+                                            ) / meal.reviews.length
+                                          )}
+                                          <span className="text-[10px] text-gray-500 mr-1">
+                                            ({meal.reviews.length})
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <span className="text-[10px] text-gray-500">
+                                          لا توجد تقييمات
                                         </span>
-                                      </>
-                                    ) : (
-                                      <span className="text-[10px] text-gray-500">
-                                        لا توجد تقييمات
-                                      </span>
-                                    )}
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                // Show meals for selected category only
+                <div className="grid grid-cols-1 gap-4">
+                  {filteredMeals.map((meal) => (
+                    <div
+                      key={meal._id}
+                      onClick={() => setSelectedMeal(meal)}
+                      className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
+                    >
+                      <div className="flex">
+                        <div className="w-1/3 relative overflow-hidden h-full">
+                          <Image
+                            src={meal.image || "/placeholder.svg"}
+                            alt={meal.name}
+                            className="h-[110px] w-[110px] object-cover object-center group-hover:scale-105 transition-transform duration-500 p-[12px] rounded-[15px]"
+                            width={200}
+                            height={200}
+                          />
+                          {meal.isNew && (
+                            <div className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                              جديد
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="w-2/3 p-3 flex flex-col justify-between">
+                          <div>
+                            <div className="text-right mb-1">
+                              <h2 className="text-[12px] font-bold text-gray-800 mr-2">
+                                {meal.name}
+                              </h2>
+                            </div>
+                            <p className="text-gray-600 text-xs line-clamp-2 mb-[7px] text-right">
+                              {meal.description}
+                            </p>
+
+                            {meal.preparationTime && (
+                              <div className="flex items-center justify-end text-gray-500 text-xs mb-1">
+                                <span>{meal.preparationTime} دقيقة</span>
+                                <Clock className="w-3 h-3 mr-1" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex justify-end gap-8 items-end">
+                            <div className="text-[12px] font-bold text-primary">
+                              {meal.price} EGP
+                            </div>
+
+                            <div className="text-right">
+                              <div className="flex items-center justify-end gap-0.5 mb-0.5">
+                                {meal.reviews && meal.reviews.length > 0 ? (
+                                  <>
+                                    {renderStars(
+                                      meal.reviews.reduce(
+                                        (sum, review) => sum + review.rating,
+                                        0
+                                      ) / meal.reviews.length
+                                    )}
+                                    <span className="text-[10px] text-gray-500 mr-1">
+                                      ({meal.reviews.length})
+                                    </span>
+                                  </>
+                                ) : (
+                                  <span className="text-[10px] text-gray-500">
+                                    لا توجد تقييمات
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -361,10 +479,10 @@ const HomePage: React.FC = () => {
                   />
                 </div>
                 <div className="md:w-2/3">
-                  <h2 className="text-2xl font-bold mb-4">{selectedMeal.name}</h2>
+                  <h2 className="text-xl font-bold mb-4">{selectedMeal.name}</h2>
                   <p className="text-gray-600 mb-4">{selectedMeal.description}</p>
                   <div className="flex items-center justify-between">
-                    <span className="text-primary font-bold text-xl">
+                    <span className="text-primary font-bold text-lg">
                       {selectedMeal.price} EGP
                     </span>
                     {selectedMeal.reviews && selectedMeal.reviews.length > 0 && (
@@ -386,7 +504,7 @@ const HomePage: React.FC = () => {
 
               {/* Reviews Section */}
               <div className="border-t pt-6">
-                <h3 className="text-xl font-bold mb-4">التقييمات والمراجعات</h3>
+                <h3 className="text-lg font-bold mb-4">التقييمات والمراجعات</h3>
                 
                 {/* Existing Reviews */}
                 <div className="space-y-4 mb-6">

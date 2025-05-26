@@ -5,7 +5,10 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from 'next/image';
+
 interface Review {
+  _id: string;
+  name: string;
   rating: number;
   comment: string;
 }
@@ -16,7 +19,12 @@ interface Meal {
   description: string;
   price: number;
   image: string;
-  category: string;
+  category: {
+    _id: string;
+    name: string;
+    image: string;
+    description?: string;
+  };
   reviews?: Review[];
 }
 
@@ -32,15 +40,14 @@ const MealsPage = () => {
     const fetchMeals = async () => {
       try {
         const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/meals`);
-        const mealsData: Meal[] = response.data; // Explicitly type response.data
+        const mealsData: Meal[] = response.data;
         setMeals(mealsData);
 
         const uniqueCategories = [
           "All",
-          ...new Set(mealsData.map((meal) => meal.category)),
+          ...new Set(mealsData.map((meal) => meal.category?.name || "Uncategorized")),
         ];
         setCategories(uniqueCategories);
-
         setLoading(false);
       } catch (err) {
         console.error("Error fetching meals:", err);
@@ -61,7 +68,7 @@ const MealsPage = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        setMeals(meals.filter((meal: Meal) => meal._id !== id));
+        setMeals(meals.filter((meal) => meal._id !== id));
       } catch (err) {
         console.error("Error deleting meal:", err);
         setError("Failed to delete meal. Please try again later.");
@@ -74,7 +81,7 @@ const MealsPage = () => {
       <div className="flex">
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
-            key={star}
+            key={`star-${star}`}
             className={`w-4 h-4 ${
               star <= rating
                 ? "fill-amber-400 text-amber-400"
@@ -88,18 +95,18 @@ const MealsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#eee] " >
+      <div className="min-h-screen flex items-center justify-center bg-[#eee]">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">
+          <div className="text-gray-600 font-medium">
             <Image 
-              src={"/logo.png"}
+              src="/logo.png"
               className="h-[150px] w-[150px] object-center block mx-auto mb-6 group-hover:scale-105 transition-transform duration-500"
               alt="Logo"
               width={600}
               height={400}
             />
-          </p>
+          </div>
         </div>
       </div>
     );
@@ -107,14 +114,14 @@ const MealsPage = () => {
 
   if (error) return <div className="text-red-500">{error}</div>;
 
-  const filteredMeals = meals.filter(
-    (meal) =>
-      meal.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      (activeCategory === "All" || meal.category === activeCategory)
-  );
+  const filteredMeals = meals.filter((meal) => {
+    const matchesSearch = meal.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = activeCategory === "All" || meal.category?.name === activeCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
-    <div className="container mx-auto p-4" >
+    <div className="container mx-auto p-4">
       <AnimatedBackground />
       <h1 className="text-4xl font-bold text-center mb-8">Meals Dashboard</h1>
 
@@ -171,12 +178,14 @@ const MealsPage = () => {
                 Price: {meal.price} EGP
               </p>
               <p className="text-md text-gray-700 mt-2">
-                Category: {meal.category}
+                Category: {meal.category?.name || "Uncategorized"}
               </p>
               <div className="flex items-center justify-end gap-1 mb-1">
                 {meal.reviews && meal.reviews.length > 0 ? (
                   <>
-                    {renderStars(5)}
+                    {renderStars(
+                      meal.reviews.reduce((sum, review) => sum + review.rating, 0) / meal.reviews.length
+                    )}
                     <span className="text-xs text-gray-500 mr-1">
                       ({meal.reviews.length})
                     </span>
