@@ -12,30 +12,35 @@ interface Category {
   name: string;
   image: string;
   description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
 }
 
 interface Review {
   _id: string;
+  user: string;
   name: string;
   rating: number;
   comment: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface Meal {
   _id: string;
   name: string;
   description: string;
-  category: {
-    _id: string;
-    name: string;
-    image: string;
-    description?: string;
-  };
+  category: Category;
   price: number;
   image: string;
   preparationTime?: number;
   isNew?: boolean;
   reviews?: Review[];
+  rating?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
 }
 
 const HomePage: React.FC = () => {
@@ -81,14 +86,21 @@ const HomePage: React.FC = () => {
     fetchData();
   }, []);
 
-  const categoryNames = ["All", ...new Set(meals.map((meal) => meal.category?.name || "Uncategorized"))];
+  const categoryNames = ["All", ...new Set(meals.map((meal) => {
+    const category = meal.category;
+    return category && typeof category === 'object' ? category.name : "Uncategorized";
+  }))];
 
   const filteredMeals = meals.filter((meal) => {
     const matchesSearch =
       meal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       meal.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const category = meal.category;
     const matchesCategory =
-      activeCategory === "All" || meal.category?.name === activeCategory;
+      activeCategory === "All" || 
+      (category && typeof category === 'object' && category.name === activeCategory);
+    
     return matchesSearch && matchesCategory;
   });
 
@@ -280,9 +292,12 @@ const HomePage: React.FC = () => {
               {activeCategory === "All" ? (
                 // Show all categories
                 categories.map((category) => {
-                  const categoryMeals = filteredMeals.filter(
-                    (meal) => meal.category?._id === category._id
-                  );
+                  const categoryMeals = filteredMeals.filter((meal) => {
+                    const mealCategory = meal.category;
+                    return mealCategory && 
+                           typeof mealCategory === 'object' && 
+                           mealCategory._id === category._id;
+                  });
 
                   if (categoryMeals.length === 0) return null;
 
@@ -480,10 +495,10 @@ const HomePage: React.FC = () => {
                   <div className="flex items-center gap-2 mb-4">
                     <span className="font-bold text-xl text-green-600">{selectedMeal.price} EGP</span>
                   </div>
-                  {selectedMeal.category && (
+                  {selectedMeal.category && typeof selectedMeal.category === 'object' && (
                     <div className="mb-4">
                       <span className="text-gray-600">Category: </span>
-                      <span className="font-semibold">{typeof selectedMeal.category === 'object' ? selectedMeal.category.name : selectedMeal.category}</span>
+                      <span className="font-semibold">{selectedMeal.category.name}</span>
                     </div>
                   )}
                   {selectedMeal.reviews && selectedMeal.reviews.length > 0 && (
@@ -491,7 +506,7 @@ const HomePage: React.FC = () => {
                       <h3 className="text-xl font-semibold mb-4">Reviews</h3>
                       <div className="space-y-4">
                         {selectedMeal.reviews.map((review, index) => (
-                          <div key={index} className="border-b pb-4">
+                          <div key={review._id || index} className="border-b pb-4">
                             <div className="flex items-center gap-2 mb-2">
                               <div className="flex text-yellow-400">
                                 {[...Array(review.rating)].map((_, i) => (
