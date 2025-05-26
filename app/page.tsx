@@ -12,35 +12,25 @@ interface Category {
   name: string;
   image: string;
   description?: string;
-  createdAt?: string;
-  updatedAt?: string;
-  __v?: number;
 }
 
 interface Review {
   _id: string;
-  user: string;
   name: string;
   rating: number;
   comment: string;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 interface Meal {
   _id: string;
   name: string;
   description: string;
-  category: Category;
   price: number;
   image: string;
   preparationTime?: number;
   isNew?: boolean;
-  reviews?: Review[];
-  rating?: number;
-  createdAt?: string;
-  updatedAt?: string;
-  __v?: number;
+  category: Category | null;
+  reviews: Review[];
 }
 
 const HomePage: React.FC = () => {
@@ -69,13 +59,46 @@ const HomePage: React.FC = () => {
         const mealsResponse = await axios.get<Meal[]>(
           `${process.env.NEXT_PUBLIC_API_URL}/meals`
         );
-        setMeals(mealsResponse.data);
+        
+        // Transform the data to ensure consistent object structure
+        const transformedMeals = mealsResponse.data.map(meal => ({
+          _id: meal._id,
+          name: meal.name,
+          description: meal.description,
+          price: meal.price,
+          image: meal.image,
+          preparationTime: meal.preparationTime,
+          isNew: meal.isNew,
+          category: meal.category ? {
+            _id: meal.category._id,
+            name: meal.category.name,
+            image: meal.category.image,
+            description: meal.category.description
+          } : null,
+          reviews: meal.reviews ? meal.reviews.map(review => ({
+            _id: review._id,
+            name: review.name,
+            rating: review.rating,
+            comment: review.comment
+          })) : []
+        }));
+
+        setMeals(transformedMeals);
 
         // Fetch categories
         const categoriesResponse = await axios.get<Category[]>(
           `${process.env.NEXT_PUBLIC_API_URL}/categories`
         );
-        setCategories(categoriesResponse.data);
+
+        // Transform categories data
+        const transformedCategories = categoriesResponse.data.map(category => ({
+          _id: category._id,
+          name: category.name,
+          image: category.image,
+          description: category.description
+        }));
+
+        setCategories(transformedCategories);
         setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -86,20 +109,18 @@ const HomePage: React.FC = () => {
     fetchData();
   }, []);
 
-  const categoryNames = ["All", ...new Set(meals.map((meal) => {
-    const category = meal.category;
-    return category && typeof category === 'object' ? category.name : "Uncategorized";
-  }))];
+  const categoryNames = ["All", ...new Set(meals.map(meal => 
+    meal.category ? meal.category.name : "Uncategorized"
+  ))];
 
-  const filteredMeals = meals.filter((meal) => {
+  const filteredMeals = meals.filter(meal => {
     const matchesSearch =
       meal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       meal.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const category = meal.category;
     const matchesCategory =
       activeCategory === "All" || 
-      (category && typeof category === 'object' && category.name === activeCategory);
+      (meal.category && meal.category.name === activeCategory);
     
     return matchesSearch && matchesCategory;
   });
@@ -292,12 +313,9 @@ const HomePage: React.FC = () => {
               {activeCategory === "All" ? (
                 // Show all categories
                 categories.map((category) => {
-                  const categoryMeals = filteredMeals.filter((meal) => {
-                    const mealCategory = meal.category;
-                    return mealCategory && 
-                           typeof mealCategory === 'object' && 
-                           mealCategory._id === category._id;
-                  });
+                  const categoryMeals = filteredMeals.filter(meal => 
+                    meal.category && meal.category._id === category._id
+                  );
 
                   if (categoryMeals.length === 0) return null;
 
@@ -495,18 +513,18 @@ const HomePage: React.FC = () => {
                   <div className="flex items-center gap-2 mb-4">
                     <span className="font-bold text-xl text-green-600">{selectedMeal.price} EGP</span>
                   </div>
-                  {selectedMeal.category && typeof selectedMeal.category === 'object' && (
+                  {selectedMeal.category && (
                     <div className="mb-4">
                       <span className="text-gray-600">Category: </span>
                       <span className="font-semibold">{selectedMeal.category.name}</span>
                     </div>
                   )}
-                  {selectedMeal.reviews && selectedMeal.reviews.length > 0 && (
+                  {selectedMeal.reviews.length > 0 && (
                     <div className="mt-6">
                       <h3 className="text-xl font-semibold mb-4">Reviews</h3>
                       <div className="space-y-4">
-                        {selectedMeal.reviews.map((review, index) => (
-                          <div key={review._id || index} className="border-b pb-4">
+                        {selectedMeal.reviews.map((review) => (
+                          <div key={review._id} className="border-b pb-4">
                             <div className="flex items-center gap-2 mb-2">
                               <div className="flex text-yellow-400">
                                 {[...Array(review.rating)].map((_, i) => (
