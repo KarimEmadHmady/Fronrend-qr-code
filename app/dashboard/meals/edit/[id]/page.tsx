@@ -213,40 +213,46 @@ const EditMealPage = () => {
     const updatedComment = prompt("Edit your review comment:");
     const updatedRating = prompt("Edit your review rating (1-5):");
 
-    if (updatedComment && updatedRating) {
-      const rating = parseInt(updatedRating, 10);
-      if (isNaN(rating) || rating < 1 || rating > 5) {
-        toast.error("Please provide a rating between 1 and 5.");
-        return;
-      }
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          throw new Error("No token found");
-        }
-        await axios.put(
-          `${process.env.NEXT_PUBLIC_API_URL}/meals/${id}/reviews/${reviewId}`,
-          { comment: updatedComment, rating },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+    if (!meal) return;
+    if (!updatedComment || !updatedRating) return;
 
-        setMeal((prev) => ({
-          ...prev,
-          reviews: prev.reviews.map((rev) =>
-            rev._id === reviewId
-              ? { ...rev, comment: updatedComment, rating }
-              : rev
-          ),
-        }));
-        toast.success("Review updated successfully");
-      } catch (error) {
-        console.error("Error updating review:", error);
-        toast.error("Failed to update review");
+    const rating = parseInt(updatedRating, 10);
+    if (isNaN(rating) || rating < 1 || rating > 5) {
+      toast.error("Please provide a rating between 1 and 5.");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No token found");
       }
+
+      await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/meals/${id}/reviews/${reviewId}`,
+        { comment: updatedComment, rating },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Create a new meal object with updated reviews
+      const updatedMeal: Meal = {
+        ...meal,
+        reviews: meal.reviews.map((rev) =>
+          rev._id === reviewId
+            ? { ...rev, comment: updatedComment, rating }
+            : rev
+        ),
+      };
+
+      setMeal(updatedMeal);
+      toast.success("Review updated successfully");
+    } catch (error) {
+      console.error("Error updating review:", error);
+      toast.error("Failed to update review");
     }
   };
 
@@ -254,12 +260,15 @@ const EditMealPage = () => {
     if (!window.confirm("Are you sure you want to delete this review?")) {
       return;
     }
+
+    if (!meal) return;
     
     try {
       const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("No token found");
       }
+
       await axios.delete(
         `${process.env.NEXT_PUBLIC_API_URL}/meals/${id}/reviews/${reviewId}`,
         {
@@ -268,10 +277,14 @@ const EditMealPage = () => {
           },
         }
       );
-      setMeal((prev) => ({
-        ...prev,
-        reviews: prev.reviews.filter((rev) => rev._id !== reviewId),
-      }));
+
+      // Create a new meal object with the review removed
+      const updatedMeal: Meal = {
+        ...meal,
+        reviews: meal.reviews.filter((rev) => rev._id !== reviewId),
+      };
+
+      setMeal(updatedMeal);
       toast.success("Review deleted successfully");
     } catch (error) {
       console.error("Error deleting review:", error);
