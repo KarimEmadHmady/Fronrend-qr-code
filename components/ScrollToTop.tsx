@@ -1,22 +1,34 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUp } from "lucide-react";
+
+const ArrowUpIcon = () => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="m18 15-6-6-6 6"/>
+  </svg>
+);
 
 const ScrollToTop = () => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const toggleVisibility = () => {
-      if (window.scrollY > 300) {
-        setVisible(true);
-      } else {
-        setVisible(false);
-      }
+    const toggleVisible = () => {
+      const scrolled = document.documentElement.scrollTop;
+      setVisible(scrolled > 300);
     };
 
-    window.addEventListener("scroll", toggleVisibility);
-    return () => window.removeEventListener("scroll", toggleVisibility);
+    window.addEventListener("scroll", toggleVisible);
+    return () => window.removeEventListener("scroll", toggleVisible);
   }, []);
 
   const scrollToTop = () => {
@@ -26,15 +38,15 @@ const ScrollToTop = () => {
     });
   };
 
-  if (!visible) return null;
-
   return (
     <button
       onClick={scrollToTop}
-      className="fixed bottom-6 right-6 z-50 bg-[#222] hover:bg-[#000] text-white p-3 rounded-full shadow-lg transition-all duration-300 group cursor-pointer"
-      aria-label="Scroll to top"
+      className={`fixed bottom-8 left-8 bg-[#222] text-white p-3 rounded-full shadow-lg hover:bg-[#333] transition-all duration-300 ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
+      }`}
+      style={{ display: visible ? "block" : "none" }}
     >
-      <ArrowUp className="w-5 h-5 group-hover:-translate-y-1 transition-transform duration-300" />
+      <ArrowUpIcon />
     </button>
   );
 };
