@@ -35,6 +35,17 @@ interface ApiError {
   code?: string;
 }
 
+interface MealResponse {
+  _id: string;
+  category: {
+    _id: string;
+    name: {
+      en: string;
+      ar: string;
+    };
+  };
+}
+
 interface Category {
   _id: string;
   name: {
@@ -98,12 +109,12 @@ const CategoriesPage = () => {
       const response = await axios.get<ApiResponse[]>(`${process.env.NEXT_PUBLIC_API_URL}/categories`);
       
       // Get meal counts for each category
-      const mealsResponse = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/meals`);
+      const mealsResponse = await axios.get<MealResponse[]>(`${process.env.NEXT_PUBLIC_API_URL}/meals`);
       const meals = mealsResponse.data;
       
       // Calculate meal counts for each category
       const mealCounts: { [key: string]: number } = {};
-      meals.forEach((meal: any) => {
+      meals.forEach((meal: MealResponse) => {
         if (meal.category) {
           mealCounts[meal.category._id] = (mealCounts[meal.category._id] || 0) + 1;
         }
