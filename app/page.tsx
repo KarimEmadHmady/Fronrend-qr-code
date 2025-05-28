@@ -54,6 +54,8 @@ const HomePage: React.FC = () => {
   const [comment, setComment] = useState<string>("");
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showTapIndicator, setShowTapIndicator] = useState(true);
+  const [isFirstMealShown, setIsFirstMealShown] = useState(false);
 
   // Add custom styles for hiding scrollbar
   const scrollableStyle = {
@@ -63,6 +65,26 @@ const HomePage: React.FC = () => {
       display: 'none'         /* Chrome, Safari and Opera */
     }
   } as React.CSSProperties;
+
+  // Add this style block at the top of the component
+  const customPointerSvg = (
+    <svg 
+      xmlns="http://www.w3.org/2000/svg" 
+      viewBox="0 0 24 24" 
+      fill="none" 
+      stroke="currentColor" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round" 
+      className="h-12 w-12 text-white animate-pointer mb-2"
+    >
+      <path d="M22 14a8 8 0 0 1-8 8"/>
+      <path d="M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/>
+      <path d="M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1"/>
+      <path d="M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10"/>
+      <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+    </svg>
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -141,6 +163,15 @@ const HomePage: React.FC = () => {
     };
 
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    // Hide tap indicator after 5 seconds
+    const timer = setTimeout(() => {
+      setShowTapIndicator(false);
+    }, 15000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const categoryNames = ["all", ...categories.map(category => category._id)];
@@ -423,7 +454,7 @@ const HomePage: React.FC = () => {
             <div className="space-y-8">
               {activeCategory === "all" ? (
                 // Show all categories
-                categories.map((category) => {
+                categories.map((category, categoryIndex) => {
                   if (!category || !category._id) return null;
 
                   const categoryMeals = filteredMeals.filter(meal => 
@@ -441,81 +472,96 @@ const HomePage: React.FC = () => {
                         <div className="h-[1px] flex-grow bg-gray-200"></div>
                       </div>
                       <div className="grid grid-cols-1 gap-4" dir="ltr">
-                        {categoryMeals.map((meal) => (
-                          <div
-                            key={meal._id}
-                            onClick={() => setSelectedMeal(meal)}
-                            className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer"
-                          >
-                            <div className="flex">
-                              <div className="w-1/3 relative overflow-hidden h-full">
-                                <Image
-                                  src={meal.image || "/placeholder.svg"}
-                                  alt={language === 'ar' ? meal.name?.ar || '' : meal.name?.en || ''}
-                                  className="h-[110px] w-[110px] object-cover object-center group-hover:scale-105 transition-transform duration-500 p-[12px] rounded-[15px]"
-                                  width={200}
-                                  height={200}
-                                />
-                                {meal.isNew && (
-                                  <div className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                                    {language === 'ar' ? "جديد" : "New"}
-                                  </div>
-                                )}
-                              </div>
+                        {categoryMeals.map((meal, index) => {
+                          const isVeryFirstMeal = categoryIndex === 0 && index === 0 && !isFirstMealShown;
+                          if (isVeryFirstMeal) {
+                            setTimeout(() => setIsFirstMealShown(true), 15000);
+                          }
 
-                              <div className="w-2/3 p-3 flex flex-col justify-between">
-                                <div>
-                                  <div dir={language === 'ar' ? 'rtl' : 'ltr'} className="mb-1">
-                                    <h2 className="text-[12px] font-bold text-gray-800 mb-1">
-                                      {language === 'ar' ? meal.name?.ar || '' : meal.name?.en || ''}
-                                    </h2>
-                                    <p className="text-gray-600 text-xs line-clamp-2 mb-[7px]">
-                                      {language === 'ar' ? meal.description?.ar || '' : meal.description?.en || ''}
-                                    </p>
-                                  </div>
-
-                                  {meal.preparationTime && (
-                                    <div dir={language === 'ar' ? 'rtl' : 'ltr'} className="flex items-center text-gray-500 text-xs mb-1">
-                                      <Clock className="w-3 h-3 mx-1" />
-                                      <span>
-                                        {language === 'ar' 
-                                          ? `${meal.preparationTime} دقيقة`
-                                          : `${meal.preparationTime} minutes`
-                                        }
-                                      </span>
+                          return (
+                            <div
+                              key={meal._id}
+                              onClick={() => setSelectedMeal(meal)}
+                              className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer relative"
+                            >
+                              {isVeryFirstMeal && showTapIndicator && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 animate-pulse z-10">
+                                  {customPointerSvg}
+                                  <span className="text-white text-sm font-medium">
+                                    {language === 'ar' ? 'انقر للتفاصيل' : 'Tap for details'}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex">
+                                <div className="w-1/3 relative overflow-hidden h-full">
+                                  <Image
+                                    src={meal.image || "/placeholder.svg"}
+                                    alt={language === 'ar' ? meal.name?.ar || '' : meal.name?.en || ''}
+                                    className="h-[110px] w-[110px] object-cover object-center group-hover:scale-105 transition-transform duration-500 p-[12px] rounded-[15px]"
+                                    width={200}
+                                    height={200}
+                                  />
+                                  {meal.isNew && (
+                                    <div className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                      {language === 'ar' ? "جديد" : "New"}
                                     </div>
                                   )}
                                 </div>
 
-                                <div className="flex justify-between items-end">
-                                  <div className="text-[12px] font-bold text-primary">
-                                    {meal.price} EGP
+                                <div className="w-2/3 p-3 flex flex-col justify-between">
+                                  <div>
+                                    <div dir={language === 'ar' ? 'rtl' : 'ltr'} className="mb-1">
+                                      <h2 className="text-[12px] font-bold text-gray-800 mb-1">
+                                        {language === 'ar' ? meal.name?.ar || '' : meal.name?.en || ''}
+                                      </h2>
+                                      <p className="text-gray-600 text-xs line-clamp-2 mb-[7px]">
+                                        {language === 'ar' ? meal.description?.ar || '' : meal.description?.en || ''}
+                                      </p>
+                                    </div>
+
+                                    {meal.preparationTime && (
+                                      <div dir={language === 'ar' ? 'rtl' : 'ltr'} className="flex items-center text-gray-500 text-xs mb-1">
+                                        <Clock className="w-3 h-3 mx-1" />
+                                        <span>
+                                          {language === 'ar' 
+                                            ? `${meal.preparationTime} دقيقة`
+                                            : `${meal.preparationTime} minutes`
+                                          }
+                                        </span>
+                                      </div>
+                                    )}
                                   </div>
 
-                                  <div dir={language === 'ar' ? 'rtl' : 'ltr'} className="flex items-center gap-2">
-                                    {meal.reviews && meal.reviews.length > 0 ? (
-                                      <>
+                                  <div className="flex justify-between items-end">
+                                    <div className="text-[12px] font-bold text-primary">
+                                      {meal.price} EGP
+                                    </div>
+
+                                    <div dir={language === 'ar' ? 'rtl' : 'ltr'} className="flex items-center gap-2">
+                                      {meal.reviews && meal.reviews.length > 0 ? (
+                                        <>
+                                          <span className="text-[10px] text-gray-500">
+                                            ({meal.reviews.length})
+                                          </span>
+                                          {renderStars(
+                                            meal.reviews.reduce(
+                                              (sum, review) => sum + review.rating,
+                                              0
+                                            ) / meal.reviews.length
+                                          )}
+                                        </>
+                                      ) : (
                                         <span className="text-[10px] text-gray-500">
-                                          ({meal.reviews.length})
+                                          {language === 'ar' ? "لا توجد تقييمات" : "No reviews"}
                                         </span>
-                                        {renderStars(
-                                          meal.reviews.reduce(
-                                            (sum, review) => sum + review.rating,
-                                            0
-                                          ) / meal.reviews.length
-                                        )}
-                                      </>
-                                    ) : (
-                                      <span className="text-[10px] text-gray-500">
-                                        {language === 'ar' ? "لا توجد تقييمات" : "No reviews"}
-                                      </span>
-                                    )}
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -604,8 +650,6 @@ const HomePage: React.FC = () => {
           )}
         </div>
       </div>
-
-
 
       {/* Meal Details Modal */}
       {selectedMeal && (
@@ -776,5 +820,45 @@ const HomePage: React.FC = () => {
   );
 };
 
-
 export default HomePage;
+
+<style jsx global>{`
+  @keyframes fadeInOut {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  @keyframes pointer {
+    0% { 
+      transform: scale(0.4);
+      opacity: 0.8;
+    }
+    50% { 
+      transform: scale(1.6);
+      opacity: 1;
+    }
+    100% { 
+      transform: scale(0.4);
+      opacity: 0.8;
+    }
+  }
+
+  .animate-pointer {
+    animation: pointer 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    transform-origin: center;
+  }
+
+  .first-meal-animation {
+    position: relative;
+  }
+
+  .first-meal-animation::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    animation: fadeInOut 2s infinite;
+    pointer-events: none;
+  }
+`}</style>
