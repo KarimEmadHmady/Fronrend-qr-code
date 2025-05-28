@@ -64,8 +64,9 @@ const MealsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [categories, setCategories] = useState<string[]>([]);
-  const [activeCategory, setActiveCategory] = useState("All");
+  const [categories, setCategories] = useState<Array<{ id: string; en: string; ar: string }>>([]);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [language, setLanguage] = useState<'en' | 'ar'>('ar');
 
   useEffect(() => {
     const fetchMeals = async () => {
@@ -98,24 +99,28 @@ const MealsPage = () => {
 
         setMeals(transformedMeals);
 
-        // Extract unique categories
-        const uniqueCategories = ["All"];
-        const categorySet = new Set<string>();
+        // Extract unique categories with both languages
+        const uniqueCategories = new Map<string, { id: string; en: string; ar: string }>();
+        uniqueCategories.set('all', { id: 'all', en: 'All', ar: 'الكل' });
         
         transformedMeals.forEach((meal: Meal) => {
-          if (meal.category?.name?.ar) {
-            categorySet.add(meal.category.name.ar);
+          if (meal.category?._id && meal.category.name) {
+            uniqueCategories.set(meal.category._id, {
+              id: meal.category._id,
+              en: meal.category.name.en,
+              ar: meal.category.name.ar
+            });
           }
         });
         
-        setCategories([...uniqueCategories, ...Array.from(categorySet)]);
+        setCategories(Array.from(uniqueCategories.values()));
         setLoading(false);
         setError(null);
       } catch (err) {
         console.error("Error fetching meals:", err);
         setError("Failed to load meals. Please try again later.");
         setMeals([]);
-        setCategories(["All"]);
+        setCategories([{ id: 'all', en: 'All', ar: 'الكل' }]);
         setLoading(false);
       }
     };
@@ -190,8 +195,8 @@ const MealsPage = () => {
       (meal.description?.en?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     
     const matchesCategory = 
-      activeCategory === "All" || 
-      meal.category?.name?.ar === activeCategory;
+      activeCategory === 'all' || 
+      meal.category?._id === activeCategory;
     
     return matchesSearch && matchesCategory;
   });
@@ -199,71 +204,101 @@ const MealsPage = () => {
   return (
     <div className="container mx-auto p-4">
       <AnimatedBackground />
-      <h1 className="text-4xl font-bold text-center mb-8">Meals Dashboard</h1>
+
 
       {/* Search Bar */}
       <div className="max-w-md mx-auto relative mb-6">
         <input
           type="text"
-          className="block w-full p-3 text-right bg-gray-100 border rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary"
-          placeholder=" ابحث هنا ..."
+          className={`block w-full p-3 bg-gray-100 border rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary ${
+            language === 'ar' ? 'text-right' : 'text-left'
+          }`}
+          placeholder={language === 'ar' ? 'ابحث هنا ...' : 'Search here...'}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold">
+          {language === 'ar' ? 'لوحة تحكم الوجبات' : 'Meals Dashboard'}
+        </h1>
+        <button
+          onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+          className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+        >
+          {language === 'en' ? 'عربي' : 'English'}
+        </button>
+      </div>
 
       {/* Categories Filter */}
       <div className="mb-8">
-        <div className="flex flex-wrap gap-4 overflow-x-auto">
+        <div className={`flex flex-wrap gap-4 overflow-x-auto ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
           {categories.map((category) => (
             <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
+              key={category.id}
+              onClick={() => setActiveCategory(category.id)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
-                activeCategory === category
+                activeCategory === category.id
                   ? "bg-[#222] text-white"
                   : "bg-gray-100 text-gray-700"
               }`}
             >
-              {category}
+              {language === 'ar' ? category.ar : category.en}
             </button>
           ))}
         </div>
       </div>
 
+   
+
       {/* Meals Grid */}
       {error ? (
-        <div className="text-center text-red-500 py-8">{error}</div>
+        <div className="text-center text-red-500 py-8">
+          {language === 'ar' ? 'حدث خطأ في تحميل الوجبات' : error}
+        </div>
       ) : filteredMeals.length === 0 ? (
-        <div className="text-center text-gray-500 py-8">No meals found</div>
+        <div className="text-center text-gray-500 py-8">
+          {language === 'ar' ? 'لا توجد وجبات' : 'No meals found'}
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredMeals.map((meal) => (
             <div
               key={meal._id}
-              className="bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300"
+              className={`bg-white shadow-lg rounded-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ${
+                language === 'ar' ? 'rtl' : 'ltr'
+              }`}
+              dir={language === 'ar' ? 'rtl' : 'ltr'}
             >
               <Image 
                 src={meal.image || "/placeholder.svg"}
-                alt={meal.name?.ar || 'Meal Image'}
+                alt={language === 'ar' ? meal.name?.ar : meal.name?.en}
                 className="w-full h-32 object-cover"
                 width={600}
                 height={400}
               />
               <div className="p-4">
                 <h2 className="text-xl font-semibold text-gray-800 mb-1">
-                  {meal.name?.ar || 'Untitled'}
+                  {language === 'ar' ? meal.name?.ar : meal.name?.en}
                 </h2>
                 <h3 className="text-sm text-gray-600 mb-2">
-                  {meal.name?.en || 'Untitled'}
+                  {language === 'ar' ? meal.name?.en : meal.name?.ar}
                 </h3>
-                <p className="text-gray-600 mt-2 text-sm mb-1">{meal.description?.ar || ''}</p>
-                <p className="text-gray-500 text-xs mb-2">{meal.description?.en || ''}</p>
+                <p className="text-gray-600 mt-2 text-sm mb-1">
+                  {language === 'ar' ? meal.description?.ar : meal.description?.en}
+                </p>
+                <p className="text-gray-500 text-xs mb-2">
+                  {language === 'ar' ? meal.description?.en : meal.description?.ar}
+                </p>
                 <p className="text-lg font-bold text-green-500 mt-4">
-                  Price: {meal.price} EGP
+                  {language === 'ar' ? `السعر: ${meal.price} جنيه` : `Price: ${meal.price} EGP`}
                 </p>
                 <p className="text-md text-gray-700 mt-2">
-                  Category: {meal.category?.name?.ar || 'Uncategorized'} - {meal.category?.name?.en || 'Uncategorized'}
+                  {language === 'ar' ? 'الفئة: ' : 'Category: '}
+                  {language === 'ar' 
+                    ? `${meal.category?.name?.ar || 'غير مصنف'}`
+                    : `${meal.category?.name?.en || 'Uncategorized'}`
+                  }
                 </p>
                 <div className="flex items-center justify-end gap-1 mb-1">
                   {meal.reviews && meal.reviews.length > 0 ? (
@@ -272,26 +307,36 @@ const MealsPage = () => {
                         meal.reviews.reduce((sum, review) => sum + review.rating, 0) / meal.reviews.length
                       )}
                       <span className="text-xs text-gray-500 mr-1">
-                        ({meal.reviews.length})
+                        ({meal.reviews.length} {language === 'ar' ? 'تقييم' : 'reviews'})
                       </span>
                     </>
                   ) : (
-                    <span className="text-xs text-gray-500">لا توجد تقييمات</span>
+                    <span className="text-xs text-gray-500">
+                      {language === 'ar' ? 'لا توجد تقييمات' : 'No reviews'}
+                    </span>
                   )}
                 </div>
 
-                <Link
-                  href={`/dashboard/meals/edit/${meal._id}`}
-                  className="mt-4 inline-block text-blue-500 hover:text-blue-700 bg-[#eee] p-2 rounded cursor-pointer"
-                >
-                  Edit
-                </Link>
-                <button
-                  onClick={() => deleteMeal(meal._id)}
-                  className="mt-4 ml-4 inline-block text-red-500 hover:text-red-700 bg-[#eee] p-2 rounded cursor-pointer"
-                >
-                  Delete
-                </button>
+                <div className={`flex gap-2 mt-4 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+                  <Link
+                    href={`/dashboard/meals/edit/${meal._id}`}
+                    className="inline-block text-blue-500 hover:text-blue-700 bg-[#eee] p-2 rounded cursor-pointer"
+                  >
+                    {language === 'ar' ? 'تعديل' : 'Edit'}
+                  </Link>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(language === 'ar' 
+                        ? 'هل أنت متأكد من حذف هذه الوجبة؟' 
+                        : 'Are you sure you want to delete this meal?')) {
+                        deleteMeal(meal._id);
+                      }
+                    }}
+                    className="inline-block text-red-500 hover:text-red-700 bg-[#eee] p-2 rounded cursor-pointer"
+                  >
+                    {language === 'ar' ? 'حذف' : 'Delete'}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -302,7 +347,7 @@ const MealsPage = () => {
         href="/dashboard/meals/add"
         className="fixed bottom-8 right-8 bg-[#222] text-white p-4 rounded-full shadow-lg hover:bg-[#333] transition-colors"
       >
-        + Add New Meal
+        {language === 'ar' ? '+ إضافة وجبة جديدة' : '+ Add New Meal'}
       </Link>
     </div>
   );

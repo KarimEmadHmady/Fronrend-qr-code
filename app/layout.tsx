@@ -6,6 +6,7 @@ import SocialIcons from "@/components/SocialIcons";
 import ScrollToTop from "@/components/ScrollToTop";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { Toaster } from 'react-hot-toast'
 
 export default function RootLayout({
   children,
@@ -22,6 +23,7 @@ export default function RootLayout({
             {children}
             <SocialIcons />
             <ToastContainer />
+            <Toaster position="top-center" />
           </LanguageProvider>
         </AuthProvider>
       </body>

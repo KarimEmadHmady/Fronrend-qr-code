@@ -7,7 +7,7 @@ import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from '@/contexts/LanguageContext';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { toast } from "react-hot-toast";
 
 interface Translation {
   en: string;
@@ -42,14 +42,18 @@ interface Meal {
 
 const HomePage: React.FC = () => {
   const { language } = useLanguage();
-  const { } = useAuth() as { isAuthenticated: boolean; user: { id: string; username: string } | null };
+  const { isAuthenticated, user } = useAuth() as { isAuthenticated: boolean; user: { id: string; username: string } | null };
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
-  const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [activeCategory, setActiveCategory] = useState<string>("all");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [rating, setRating] = useState<number>(0);
+  const [comment, setComment] = useState<string>("");
+  const [hoveredRating, setHoveredRating] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Add custom styles for hiding scrollbar
   const scrollableStyle = {
@@ -139,9 +143,15 @@ const HomePage: React.FC = () => {
     fetchData();
   }, []);
 
-  const categoryNames = ["All", ...new Set(meals.map(meal => 
-    language === 'ar' ? (meal.category?.name?.ar || "غير مصنف") : (meal.category?.name?.en || "Uncategorized")
-  ))];
+  const categoryNames = ["all", ...categories.map(category => category._id)];
+
+  const getCategoryLabel = (categoryId: string) => {
+    if (categoryId === "all") {
+      return language === 'ar' ? "عرض الكل" : "All";
+    }
+    const category = categories.find(c => c._id === categoryId);
+    return language === 'ar' ? category?.name?.ar || "غير مصنف" : category?.name?.en || "Uncategorized";
+  };
 
   const filteredMeals = meals.filter(meal => {
     const matchesSearch =
@@ -151,8 +161,8 @@ const HomePage: React.FC = () => {
       meal.description?.en?.toLowerCase().includes(searchTerm.toLowerCase())) ?? false;
     
     const matchesCategory =
-      activeCategory === "All" || 
-      meal.category?.name?.ar === activeCategory;
+      activeCategory === "all" || 
+      meal.category?._id === activeCategory;
     
     return matchesSearch && matchesCategory;
   });
@@ -172,6 +182,67 @@ const HomePage: React.FC = () => {
         ))}
       </div>
     );
+  };
+
+  // Add submitReview function
+  const submitReview = async () => {
+    if (!isAuthenticated || !user || !selectedMeal) return;
+    
+    try {
+      setIsSubmitting(true);
+      const token = localStorage.getItem("token");
+      
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/meals/${selectedMeal._id}/reviews`,
+        {
+          rating,
+          comment,
+          userId: user.id,
+          name: user.username
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      // Create the new review object
+      const newReview = {
+        _id: response.data._id,
+        rating: rating,
+        comment: comment,
+        name: user.username
+      };
+
+      // Update the meals state with the new review
+      const updatedMeals = meals.map(meal => {
+        if (meal._id === selectedMeal._id) {
+          return {
+            ...meal,
+            reviews: [...meal.reviews, newReview]
+          };
+        }
+        return meal;
+      });
+      setMeals(updatedMeals);
+
+      // Update selected meal with new review
+      setSelectedMeal({
+        ...selectedMeal,
+        reviews: [...selectedMeal.reviews, newReview]
+      });
+
+      // Reset form
+      setRating(0);
+      setComment("");
+      toast.success(language === 'ar' ? "تم إضافة التقييم بنجاح" : "Review added successfully");
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      toast.error(language === 'ar' ? "حدث خطأ أثناء إضافة التقييم" : "Error adding review");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -199,10 +270,6 @@ const HomePage: React.FC = () => {
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-primary/90 to-primary text-[#222] py-4 px-3 bg-[#eee]">
         <div className="container mx-auto max-w-6xl relative">
-          {/* Add Language Switcher */}
-          <div className="absolute top-2 right-2 z-10">
-            <LanguageSwitcher />
-          </div>
 
           <Image
             src="/banner.webp"
@@ -248,22 +315,20 @@ const HomePage: React.FC = () => {
             {/* Scrollable Categories */}
             <div className="overflow-x-auto flex-1" style={scrollableStyle}>
               <div className="flex gap-[4px] min-w-max">
-                {categoryNames.map((categoryName) => (
+                {categoryNames.map((categoryId) => (
                   <button
-                    key={categoryName}
+                    key={categoryId}
                     onClick={() => {
-                      setActiveCategory(categoryName);
+                      setActiveCategory(categoryId);
                       setIsSidebarOpen(false);
                     }}
                     className={`px-4 py-2 rounded-[8px] text-sm font-medium whitespace-nowrap transition-colors cursor-pointer ${
-                      activeCategory === categoryName
+                      activeCategory === categoryId
                         ? "bg-white text-[#222] hover:bg-gray-200"
                         : "bg-gray-100 text-gray-700"
                     }`}
                   >
-                    {categoryName === "All" 
-                      ? (language === 'ar' ? "عرض الكل" : "All") 
-                      : categoryName}
+                    {getCategoryLabel(categoryId)}
                   </button>
                 ))}
               </div>
@@ -290,11 +355,11 @@ const HomePage: React.FC = () => {
             <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-100px)]">
               <button
                 onClick={() => {
-                  setActiveCategory("All");
+                  setActiveCategory("all");
                   setIsSidebarOpen(false);
                 }}
                 className={`w-full text-center p-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                  activeCategory === "All"
+                  activeCategory === "all"
                     ? "bg-[#222] text-[#eee]"
                     : "hover:bg-gray-100"
                 }`}
@@ -305,12 +370,12 @@ const HomePage: React.FC = () => {
                 <div
                   key={category?._id}
                   className={`w-full flex flex-col items-center p-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                    activeCategory === (language === 'ar' ? category?.name?.ar : category?.name?.en)
+                    activeCategory === category._id
                       ? "bg-[#222] text-[#eee]"
                       : "hover:bg-gray-100"
                   }`}
                   onClick={() => {
-                    setActiveCategory(language === 'ar' ? category?.name?.ar || "غير مصنف" : category?.name?.en || "Uncategorized");
+                    setActiveCategory(category._id);
                     setIsSidebarOpen(false);
                   }}
                 >
@@ -356,7 +421,7 @@ const HomePage: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-8">
-              {activeCategory === "All" ? (
+              {activeCategory === "all" ? (
                 // Show all categories
                 categories.map((category) => {
                   if (!category || !category._id) return null;
@@ -540,16 +605,33 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
+
+
       {/* Meal Details Modal */}
       {selectedMeal && (
         <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+            <button
+              onClick={() => {
+                setSelectedMeal(null);
+                setRating(0);
+                setComment("");
+              }}
+              className="absolute bottom-4  p-1 hover:bg-gray-100 rounded-full cursor-pointer z-50 flex items-center gap-1 border-black border-1 "
+            >
+               <span className="text-[13px]">Close</span> <X  className="w-5 h-5 text-red-500" />
+            </button>
           <div className="bg-white w-[90%] max-h-[80vh] overflow-y-auto rounded-[8px] shadow-xl relative scrollbar-hide">
             <button
-              onClick={() => setSelectedMeal(null)}
+              onClick={() => {
+                setSelectedMeal(null);
+                setRating(0);
+                setComment("");
+              }}
               className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full cursor-pointer"
             >
               <X className="w-6 h-6" />
             </button>
+
             <div className="p-6">
               <div className="flex flex-col md:flex-row gap-6 mb-8">
                 <div className="md:w-1/3">
@@ -592,32 +674,100 @@ const HomePage: React.FC = () => {
                       </span>
                     </div>
                   )}
-                  {selectedMeal.reviews.length > 0 && (
-                    <div className="mt-6">
-                      <h3 className="text-xl font-semibold mb-4">
-                        {language === 'ar' ? 'التقييمات' : 'Reviews'}
-                      </h3>
-                      <div className="space-y-4">
-                        {selectedMeal.reviews.map((review) => (
-                          <div key={review._id} className="border-b pb-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="flex text-yellow-400">
-                                {[...Array(review.rating)].map((_, i) => (
-                                  <Star key={i} className="w-4 h-4 fill-current" />
-                                ))}
-                              </div>
-                              <span className="font-semibold">{review.name}</span>
-                            </div>
-                            {review.comment && (
-                              <p className="text-gray-600">{review.comment}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
+
+              {/* Existing Reviews Section */}
+              {selectedMeal.reviews.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-xl font-semibold mb-4">
+                    {language === 'ar' ? 'التقييمات' : 'Reviews'}
+                  </h3>
+                  <div className="space-y-4">
+                    {selectedMeal.reviews.map((review) => (
+                      <div key={review._id} className="border-b pb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex text-yellow-400">
+                            {[...Array(review.rating)].map((_, i) => (
+                              <Star key={i} className="w-4 h-4 fill-current" />
+                            ))}
+                          </div>
+                          <span className="font-semibold">{review.name}</span>
+                        </div>
+                        {review.comment && (
+                          <p className="text-gray-600">{review.comment}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Add Review Section */}
+              <div className="mt-8  ">
+                <h3 className="text-xl font-semibold mb-4">
+                  {language === 'ar' ? 'إضافة تقييم' : 'Add Review'}
+                </h3>
+                
+                {isAuthenticated ? (
+                  <div className="space-y-4">
+                    {/* Star Rating */}
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-8 h-8 cursor-pointer transition-colors ${
+                            star <= (hoveredRating || rating)
+                              ? "fill-amber-400 text-amber-400"
+                              : "fill-gray-200 text-gray-200"
+                          }`}
+                          onMouseEnter={() => setHoveredRating(star)}
+                          onMouseLeave={() => setHoveredRating(0)}
+                          onClick={() => setRating(star)}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Comment Input */}
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder={language === 'ar' ? "اكتب تعليقك هنا..." : "Write your comment here..."}
+                      className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none"
+                      rows={4}
+                    />
+
+                    {/* Submit Button */}
+                    <button
+                      onClick={submitReview}
+                      disabled={!rating || isSubmitting}
+                      className={`px-6 py-2 bg-[#222] text-white rounded-lg transition-colors cursor-pointer ${
+                        !rating || isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/90'
+                      }`}
+                    >
+                      {isSubmitting 
+                        ? (language === 'ar' ? 'جاري الإرسال...' : 'Submitting...') 
+                        : (language === 'ar' ? 'إرسال التقييم' : 'Submit Review')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <p className="text-gray-600 mb-4">
+                      {language === 'ar' 
+                        ? 'يجب تسجيل الدخول لإضافة تقييم' 
+                        : 'Please login to add a review'}
+                    </p>
+                    <a 
+                      href="/login"
+                      className="inline-block px-6 py-2 bg-[#222] text-white rounded-lg transition-colors hover:bg-[#000]"
+                    >
+                      {language === 'ar' ? 'تسجيل الدخول' : 'Login'}
+                    </a>
+                  </div>
+                )}
+              </div>
+
+
             </div>
           </div>
         </div>

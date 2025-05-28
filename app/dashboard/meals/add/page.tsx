@@ -56,6 +56,7 @@ interface ApiResponse {
 
 const AddMealPage = () => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [language, setLanguage] = useState<'en' | 'ar'>('ar');
   const [newCategory, setNewCategory] = useState<CategoryState>({
     name: { en: "", ar: "" },
     description: { en: "", ar: "" },
@@ -247,80 +248,111 @@ const AddMealPage = () => {
     <div className="min-h-screen bg-[#eee] flex flex-col items-center py-8 px-4">
       <AnimatedBackground />
       
+      {/* Language Switch */}
+      <div className="w-full max-w-md mb-4 flex justify-end">
+        <button
+          onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+          className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+        >
+          {language === 'en' ? 'عربي' : 'English'}
+        </button>
+      </div>
+      
       {/* Meal Form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-8 sm:p-10 rounded-2xl shadow-lg w-full max-w-md transition-all z-10 mb-8"
+        className={`bg-white p-8 sm:p-10 rounded-2xl shadow-lg w-full max-w-md transition-all z-10 mb-8 ${
+          language === 'ar' ? 'rtl' : 'ltr'
+        }`}
+        dir={language === 'ar' ? 'rtl' : 'ltr'}
       >
         <h2 className="text-3xl font-extrabold text-center text-gray-800 mb-6">
-          Add New Meal
+          {language === 'ar' ? 'إضافة وجبة جديدة' : 'Add New Meal'}
         </h2>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name (English)</label>
+          <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            {language === 'ar' ? 'الاسم (بالإنجليزية)' : 'Name (English)'}
+          </label>
           <input
             type="text"
             name="name_en"
             value={meal.name.en}
             onChange={handleMealChange}
-            placeholder="Meal Name in English"
+            placeholder={language === 'ar' ? 'اسم الوجبة بالإنجليزية' : 'Meal Name in English'}
             required
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name (Arabic)</label>
+          <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            {language === 'ar' ? 'الاسم (بالعربية)' : 'Name (Arabic)'}
+          </label>
           <input
             type="text"
             name="name_ar"
             value={meal.name.ar}
             onChange={handleMealChange}
-            placeholder="اسم الوجبة بالعربية"
+            placeholder={language === 'ar' ? 'اسم الوجبة بالعربية' : 'Meal Name in Arabic'}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+            className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              language === 'ar' ? 'text-right' : 'text-left'
+            }`}
           />
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description (English)</label>
+          <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            {language === 'ar' ? 'الوصف (بالإنجليزية)' : 'Description (English)'}
+          </label>
           <input
             type="text"
             name="description_en"
             value={meal.description.en}
             onChange={handleMealChange}
-            placeholder="Meal Description in English"
+            placeholder={language === 'ar' ? 'وصف الوجبة بالإنجليزية' : 'Meal Description in English'}
             required
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description (Arabic)</label>
+          <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            {language === 'ar' ? 'الوصف (بالعربية)' : 'Description (Arabic)'}
+          </label>
           <input
             type="text"
             name="description_ar"
             value={meal.description.ar}
             onChange={handleMealChange}
-            placeholder="وصف الوجبة بالعربية"
+            placeholder={language === 'ar' ? 'وصف الوجبة بالعربية' : 'Meal Description in Arabic'}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+            className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              language === 'ar' ? 'text-right' : 'text-left'
+            }`}
           />
         </div>
 
         <div className="mb-4">
+          <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            {language === 'ar' ? 'السعر' : 'Price'}
+          </label>
           <input
             type="number"
             name="price"
             value={meal.price}
             onChange={handleMealChange}
-            placeholder="Price"
+            placeholder={language === 'ar' ? 'السعر' : 'Price'}
             required
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div className="mb-4">
+          <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            {language === 'ar' ? 'الفئة' : 'Category'}
+          </label>
           <select
             name="categoryId"
             value={meal.categoryId}
@@ -328,24 +360,26 @@ const AddMealPage = () => {
             required
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">Select Category</option>
+            <option value="">{language === 'ar' ? 'اختر الفئة' : 'Select Category'}</option>
             {categories && categories.length > 0 ? (
               categories.map((category) => (
                 category && category.name ? (
                   <option key={category._id} value={category._id}>
-                    {category.name?.ar || 'Untitled'} - {category.name?.en || 'Untitled'}
+                    {language === 'ar' ? category.name.ar : category.name.en}
                   </option>
                 ) : null
               ))
             ) : (
-              <option value="" disabled>No categories available</option>
+              <option value="" disabled>
+                {language === 'ar' ? 'لا توجد فئات متاحة' : 'No categories available'}
+              </option>
             )}
           </select>
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Meal Image
+          <label className={`block text-sm font-medium text-gray-700 mb-2 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            {language === 'ar' ? 'صورة الوجبة' : 'Meal Image'}
           </label>
           <input
             type="file"
@@ -359,7 +393,7 @@ const AddMealPage = () => {
             <div className="mt-2">
               <Image
                 src={meal.imagePreview}
-                alt="Preview"
+                alt={language === 'ar' ? 'معاينة' : 'Preview'}
                 width={100}
                 height={100}
                 className="rounded-lg"
@@ -375,70 +409,87 @@ const AddMealPage = () => {
             loading ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
-          {loading ? "Adding..." : "Add Meal"}
+          {loading 
+            ? (language === 'ar' ? 'جاري الإضافة...' : 'Adding...') 
+            : (language === 'ar' ? 'إضافة الوجبة' : 'Add Meal')}
         </button>
       </form>
 
       {/* Category Form */}
       <form
         onSubmit={handleAddCategory}
-        className="bg-white p-8 sm:p-10 rounded-2xl shadow-lg w-full max-w-md transition-all z-10 mt-8"
+        className={`bg-white p-8 sm:p-10 rounded-2xl shadow-lg w-full max-w-md transition-all z-10 mt-8 ${
+          language === 'ar' ? 'rtl' : 'ltr'
+        }`}
+        dir={language === 'ar' ? 'rtl' : 'ltr'}
       >
         <h2 className="text-3xl font-extrabold text-center text-gray-800 mb-6">
-          Add New Category
+          {language === 'ar' ? 'إضافة فئة جديدة' : 'Add New Category'}
         </h2>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name (English)</label>
+          <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            {language === 'ar' ? 'الاسم (بالإنجليزية)' : 'Name (English)'}
+          </label>
           <input
             type="text"
             name="name_en"
             value={newCategory.name.en}
             onChange={handleCategoryChange}
-            placeholder="Category Name in English"
+            placeholder={language === 'ar' ? 'اسم الفئة بالإنجليزية' : 'Category Name in English'}
             required
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Name (Arabic)</label>
+          <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            {language === 'ar' ? 'الاسم (بالعربية)' : 'Name (Arabic)'}
+          </label>
           <input
             type="text"
             name="name_ar"
             value={newCategory.name.ar}
             onChange={handleCategoryChange}
-            placeholder="اسم الفئة بالعربية"
+            placeholder={language === 'ar' ? 'اسم الفئة بالعربية' : 'Category Name in Arabic'}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+            className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              language === 'ar' ? 'text-right' : 'text-left'
+            }`}
           />
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description (English)</label>
+          <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            {language === 'ar' ? 'الوصف (بالإنجليزية)' : 'Description (English)'}
+          </label>
           <textarea
             name="description_en"
             value={newCategory.description.en}
             onChange={handleCategoryChange}
-            placeholder="Category Description in English"
+            placeholder={language === 'ar' ? 'وصف الفئة بالإنجليزية' : 'Category Description in English'}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description (Arabic)</label>
+          <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            {language === 'ar' ? 'الوصف (بالعربية)' : 'Description (Arabic)'}
+          </label>
           <textarea
             name="description_ar"
             value={newCategory.description.ar}
             onChange={handleCategoryChange}
-            placeholder="وصف الفئة بالعربية"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-right"
+            placeholder={language === 'ar' ? 'وصف الفئة بالعربية' : 'Category Description in Arabic'}
+            className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              language === 'ar' ? 'text-right' : 'text-left'
+            }`}
           />
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Category Image
+          <label className={`block text-sm font-medium text-gray-700 mb-2 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+            {language === 'ar' ? 'صورة الفئة' : 'Category Image'}
           </label>
           <input
             type="file"
@@ -452,7 +503,7 @@ const AddMealPage = () => {
             <div className="mt-2">
               <Image
                 src={newCategory.imagePreview}
-                alt="Preview"
+                alt={language === 'ar' ? 'معاينة' : 'Preview'}
                 width={100}
                 height={100}
                 className="rounded-lg"
@@ -465,7 +516,7 @@ const AddMealPage = () => {
           type="submit"
           className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
         >
-          Add Category
+          {language === 'ar' ? 'إضافة الفئة' : 'Add Category'}
         </button>
       </form>
     </div>

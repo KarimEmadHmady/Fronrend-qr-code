@@ -64,6 +64,7 @@ export default function Navbar() {
 
   return (
     <nav className="bg-[#eee] p-4 flex justify-between items-center" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="flex items-center gap-2">
       <Link
         href="/"
         className="text-[15px] sm:text-[25px] font-bold text-[#222]"
@@ -77,6 +78,7 @@ export default function Navbar() {
         />
       </Link>
       <LanguageSwitcher />
+      </div>
 
       <div className="flex items-center gap-2">
         {user ? (
@@ -128,14 +130,14 @@ export default function Navbar() {
           <>
             <Link
               href="/login"
-              className="flex items-center gap-2 cursor-pointe bg-[#222] text-white px-3 py-1 rounded hover:bg-[#000] transition text-[12px] sm:text-[13px]"
+              className="flex items-center gap-2 cursor-pointe bg-[#222] text-white px-3 py-2 rounded hover:bg-[#000] transition text-[9px] sm:text-[13px]"
             >
               <FaSignInAlt />
               {translations.login[language]}
             </Link>
             <Link
               href="/register"
-              className="flex items-center gap-2 cursor-pointe bg-[#222] text-white px-3 py-1 rounded hover:bg-[#000] transition text-[12px] sm:text-[13px]"
+              className="flex items-center gap-2 cursor-pointe bg-[#222] text-white px-3 py-2 rounded hover:bg-[#000] transition text-[9px] sm:text-[13px]"
             >
               <FaUserPlus />
               {translations.register[language]}

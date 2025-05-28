@@ -92,6 +92,7 @@ const CategoriesPage = () => {
   const [loading, setLoading] = useState(true);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [language, setLanguage] = useState<'en' | 'ar'>('ar');
   const [newCategory, setNewCategory] = useState<NewCategory>({
     name: { en: "", ar: "" },
     description: { en: "", ar: "" },
@@ -296,13 +297,21 @@ const CategoriesPage = () => {
       <AnimatedBackground />
       <div className="bg-white rounded-lg shadow-lg p-6">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-lg font-bold">إدارة الفئات</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-lg font-bold">{language === 'ar' ? 'إدارة الفئات' : 'Categories Management'}</h1>
+            <button
+              onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+              className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              {language === 'en' ? 'عربي' : 'English'}
+            </button>
+          </div>
           <button
             onClick={() => setIsModalOpen(true)}
             className="bg-[#222] text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-[#333] cursor-pointer"
           >
             <PlusIcon />
-            إضافة فئة جديدة
+            {language === 'ar' ? 'إضافة فئة جديدة' : 'Add New Category'}
           </button>
         </div>
 
@@ -311,29 +320,46 @@ const CategoriesPage = () => {
             categories.map((category) => (
               <div
                 key={category._id}
-                className="bg-white rounded-lg shadow-md overflow-hidden"
+                className={`bg-white rounded-lg shadow-md overflow-hidden ${language === 'ar' ? 'rtl' : 'ltr'}`}
+                dir={language === 'ar' ? 'rtl' : 'ltr'}
               >
                 <div className="relative h-48">
                   <Image
                     src={category.image || '/placeholder.svg'}
-                    alt={category.name?.ar || 'Category Image'}
+                    alt={language === 'ar' ? category.name?.ar : category.name?.en}
                     className="object-cover"
                     fill
                   />
                 </div>
                 <div className="p-4">
                   <h3 className="text-xl font-semibold mb-1">
-                    {category.name?.ar || 'Untitled'} 
-                    <span className="text-sm text-gray-500 mr-2">({category.mealCount} وجبة)</span>
+                    {language === 'ar' ? (
+                      <>
+                        {category.name?.ar || 'بدون عنوان'}
+                        <span className="text-sm text-gray-500 mr-2">
+                          ({category.mealCount} {category.mealCount === 1 ? 'وجبة' : 'وجبات'})
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        {category.name?.en || 'Untitled'}
+                        <span className="text-sm text-gray-500 ml-2">
+                          ({category.mealCount} {category.mealCount === 1 ? 'meal' : 'meals'})
+                        </span>
+                      </>
+                    )}
                   </h3>
                   <h4 className="text-sm text-gray-600 mb-2">
-                    {category.name?.en || 'Untitled'} 
-                    <span className="text-sm text-gray-500 ml-2">({category.mealCount} meals)</span>
+                    {language === 'ar' ? category.name?.en : category.name?.ar}
                   </h4>
                   {category.description && (
                     <>
-                      <p className="text-gray-600 text-sm mb-1">{category.description.ar || ''}</p>
-                      <p className="text-gray-500 text-xs mb-2">{category.description.en || ''}</p>
+                      <p className="text-gray-600 text-sm mb-1">
+                        {language === 'ar' ? category.description.ar : category.description.en}
+                      </p>
+                      <p className="text-gray-500 text-xs mb-2">
+                        {language === 'ar' ? category.description.en : category.description.ar}
+                      </p>
                     </>
                   )}
                   <div className="flex justify-end gap-2 mt-4">
@@ -354,12 +380,14 @@ const CategoriesPage = () => {
                         });
                       }}
                       className="text-blue-600 hover:text-blue-800 bg-[#eee] p-2 rounded cursor-pointer"
+                      title={language === 'ar' ? 'تعديل' : 'Edit'}
                     >
                       <EditIcon />
                     </button>
                     <button
                       onClick={() => handleDeleteCategory(category._id)}
                       className="text-red-600 hover:text-red-800 bg-[#eee] p-2 rounded cursor-pointer"
+                      title={language === 'ar' ? 'حذف' : 'Delete'}
                     >
                       <TrashIcon />
                     </button>
@@ -369,7 +397,7 @@ const CategoriesPage = () => {
             ))
           ) : (
             <div className="col-span-full text-center py-8 text-gray-500">
-              No categories available
+              {language === 'ar' ? 'لا توجد فئات متاحة' : 'No categories available'}
             </div>
           )}
         </div>
@@ -377,71 +405,81 @@ const CategoriesPage = () => {
 
       {/* Add/Edit Category Modal */}
       {(isModalOpen || editingCategory) && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold mb-4">
-              {editingCategory ? "Edit Category" : "Add New Category"}
-            </h2>
+        <div className="fixed inset-0 backdrop-blur-xs bg-opacity-50 flex items-center justify-center p-4">
+          <div className={`bg-white rounded-lg p-6 w-full max-w-md ${language === 'ar' ? 'rtl' : 'ltr'}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">
+                {editingCategory 
+                  ? (language === 'ar' ? 'تعديل الفئة' : 'Edit Category')
+                  : (language === 'ar' ? 'إضافة فئة جديدة' : 'Add New Category')}
+              </h2>
+              <button
+                onClick={() => setLanguage(language === 'en' ? 'ar' : 'en')}
+                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                {language === 'en' ? 'عربي' : 'English'}
+              </button>
+            </div>
             <form onSubmit={editingCategory ? handleUpdateCategory : handleAddCategory}>
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name (English)
+                <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'الاسم (بالإنجليزية)' : 'Name (English)'}
                 </label>
                 <input
                   type="text"
                   name="name_en"
                   value={newCategory.name.en}
                   onChange={handleInputChange}
-                  placeholder="Category Name in English"
+                  placeholder={language === 'ar' ? 'اسم الفئة بالإنجليزية' : 'Category Name in English'}
                   className="w-full px-3 py-2 border rounded-lg"
                   required
                 />
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name (Arabic)
+                <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'الاسم (بالعربية)' : 'Name (Arabic)'}
                 </label>
                 <input
                   type="text"
                   name="name_ar"
                   value={newCategory.name.ar}
                   onChange={handleInputChange}
-                  placeholder="اسم الفئة بالعربية"
-                  className="w-full px-3 py-2 border rounded-lg text-right"
+                  placeholder={language === 'ar' ? 'اسم الفئة بالعربية' : 'Category Name in Arabic'}
+                  className={`w-full px-3 py-2 border rounded-lg ${language === 'ar' ? 'text-right' : 'text-left'}`}
                   required
                 />
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description (English)
+                <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'الوصف (بالإنجليزية)' : 'Description (English)'}
                 </label>
                 <textarea
                   name="description_en"
                   value={newCategory.description.en}
                   onChange={handleInputChange}
-                  placeholder="Category Description in English"
+                  placeholder={language === 'ar' ? 'وصف الفئة بالإنجليزية' : 'Category Description in English'}
                   className="w-full px-3 py-2 border rounded-lg"
                 />
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description (Arabic)
+                <label className={`block text-sm font-medium text-gray-700 mb-1 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'الوصف (بالعربية)' : 'Description (Arabic)'}
                 </label>
                 <textarea
                   name="description_ar"
                   value={newCategory.description.ar}
                   onChange={handleInputChange}
-                  placeholder="وصف الفئة بالعربية"
-                  className="w-full px-3 py-2 border rounded-lg text-right"
+                  placeholder={language === 'ar' ? 'وصف الفئة بالعربية' : 'Category Description in Arabic'}
+                  className={`w-full px-3 py-2 border rounded-lg ${language === 'ar' ? 'text-right' : 'text-left'}`}
                 />
               </div>
 
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Image
+                <label className={`block text-sm font-medium text-gray-700 mb-2 ${language === 'ar' ? 'text-right' : 'text-left'}`}>
+                  {language === 'ar' ? 'الصورة' : 'Image'}
                 </label>
                 <input
                   type="file"
@@ -454,7 +492,7 @@ const CategoriesPage = () => {
                   <div className="mt-2">
                     <Image
                       src={newCategory.imagePreview || editingCategory?.image || ""}
-                      alt="Preview"
+                      alt={language === 'ar' ? 'معاينة' : 'Preview'}
                       width={100}
                       height={100}
                       className="rounded-lg"
@@ -476,15 +514,17 @@ const CategoriesPage = () => {
                       imagePreview: "",
                     });
                   }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 cursor-pointer"
                 >
-                  Cancel
+                  {language === 'ar' ? 'إلغاء' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#222] text-white rounded-lg hover:bg-[#333]"
+                  className="px-4 py-2 bg-[#222] text-white rounded-lg hover:bg-[#333] cursor-pointer"
                 >
-                  {editingCategory ? "Update" : "Add"}
+                  {editingCategory 
+                    ? (language === 'ar' ? 'تحديث' : 'Update')
+                    : (language === 'ar' ? 'إضافة' : 'Add')}
                 </button>
               </div>
             </form>
